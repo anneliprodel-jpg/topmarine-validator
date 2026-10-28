@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Top Marine SP Order Checker - õppetöö MVP (demo)",
-  "engines": { "node": ">=20.9" },
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -19,14 +21,17 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "mammoth": "^1.13.0",
     "next": "15.5.28",
+    "postal-mime": "^4.1.4",
     "postcss": "^8.4.49",
     "prisma": "6.19.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwindcss": "4.3.3",
     "tsx": "^4.19.0",
-    "typescript": "~5.9.0"
+    "typescript": "~5.9.0",
+    "unpdf": "^1.9.1"
   },
   "devDependencies": {
     "vitest": "^3.2.0"

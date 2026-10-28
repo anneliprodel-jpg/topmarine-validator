@@ -15,8 +15,13 @@ ega hinnang konstruktsiooni, ankurduse, kandevõime ega sobivuse kohta.**
   See on õppetöö nõuete kõrvalekalle; **õppejõud ei ole seda kinnitanud** (kinnitus tuleb eraldi küsida).
 - **See ei ole üldine vestlusrobot.** Tegemist on valdkonnapõhise tellimuste kontrollirakendusega, mitte õppetöö näite üldise chatbotiga.
   Rakendus **ei väida**, et rahuldab chatbot-spetsiifilisi hindamiskriteeriume.
-- Ei sisalda OCR-i, CAD-analüüsi, joonise üleslaadimist, tehisintellekti väljavõtet, tasulisi AI API-sid, hinnapakkumisi ega automaatset
-  insenerikinnitust. Valikuline algne tellimustekst on ainult viide - seda **ei tõlgendata automaatselt**.
+- Ei sisalda OCR-i, CAD-analüüsi, joonise analüüsi, tehisintellekti väljavõtet, tasulisi AI API-sid, hinnapakkumisi ega automaatset
+  insenerikinnitust.
+- **Failist lugemine (hilisem laiendus kasutaja palvel):** vormil saab üles laadida .docx, .pdf, .eml või .txt faili. Server loeb faili
+  teksti mälus (faili ei salvestata) ja brauser pakub **reeglipõhiseid** (mitte AI) soovitusi: tuntud SP tootekoodid koos kogusega, mõõtude ja
+  ujukitega, tarnekuupäev tarne-märksõnaga reast, ankurdus ja talve mainimine. Midagi ei lisata vormi enne kasutaja kinnitust ja
+  soovitused täidavad ainult tühje välju. Skaneeritud PDF-e (OCR) ei loeta; e-kirja manuseid ei avata. Algtekst on endiselt ainult viide
+  ega mõjuta kontrolle.
 - Scope: ainult SP ja otseselt asjakohased tarvikud (ECO-märgisega hinged on SP tarvikud, mitte ECO pontoonid).
 
 ## Tehnoloogia

@@ -97,7 +97,7 @@ export function runValidation(
       "R-REF-01",
       "Algne tellimustekst",
       "NA",
-      "Algne tekst on ainult viide; seda ei ole automaatselt tõlgendatud. Kontrollid põhinevad ainult struktureeritud väljadel.",
+      "Algne tekst on ainult viide. Kontrollid põhinevad ainult struktureeritud väljadel; failist pakutud väärtused lisas vormi kasutaja ise.",
     );
   }
 

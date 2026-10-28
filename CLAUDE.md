@@ -6,8 +6,10 @@ kontrolliks. Töötaja kasutab, mitte edasimüüja. Deterministlik reeglipõhine
 
 ## Reeglid
 - Scope ainult SP ja otseselt asjakohased tarvikud. Ei ECO/BP/betoonpontoone. ECO-hinged on SP tarvikud.
-- Ei OCR-i, CAD-i, joonise üleslaadimist, AI väljavõtet, tasulisi AI API-sid, hindu/pakkumisi ega automaatset insenerikinnitust.
-- Algne tellimustekst on ainult viide; ära vihja automaatsele tõlgendamisele.
+- Ei OCR-i, CAD-i, joonise analüüsi, AI väljavõtet, tasulisi AI API-sid, hindu/pakkumisi ega automaatset insenerikinnitust.
+- Failiimport (.docx/.pdf/.eml/.txt, `src/lib/import/`, `/api/extract`) on kasutaja palvel lisatud: ainult teksti väljavõte + reeglipõhised soovitused,
+  mida kasutaja kinnitab; faili ei salvestata; kontrollid põhinevad vormi väljadel. Ära lisa OCR-i ega AI-d ilma eraldi palveta.
+- Algne tellimustekst on ainult viide; ära vihja, et see on automaatselt kontrollitud.
 - Valideerimismootor (`src/lib/validation/`) on puhas ja eraldi UI-st/Prisma-st. Reegli muudatus -> uuenda `src/lib/catalogue/data.ts`
   (RULES, RULES_VERSION), testid ja seed; ära kirjuta salvestatud ValidationRun kirjeid ümber.
 - Tootekoodid on stringid (eesnullid!). Kood üksi ei ole unikaalne - kasuta `internalId` + `variant` (MODULE/SET/ACCESSORY).

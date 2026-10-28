@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { saveAction } from "@/app/actions";
+import { FileImport } from "./FileImport";
 import { emptyRawLine, type RawLine, type RawSubmission } from "@/lib/validation/input";
 
 export interface ProductHint {
@@ -27,6 +28,7 @@ export function SubmissionForm({
   const [s, setS] = useState<RawSubmission>(initial);
   const [errors, setErrors] = useState<string[]>([]);
   const [pending, start] = useTransition();
+  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const set = <K extends keyof RawSubmission>(k: K, v: RawSubmission[K]) => setS((p) => ({ ...p, [k]: v }));
   const setLine = (i: number, patch: Partial<RawLine>) =>
@@ -69,6 +71,17 @@ export function SubmissionForm({
         </div>
       )}
 
+      <FileImport
+        knownCodes={[...new Set(products.map((p) => p.code))]}
+        onApply={(fn, msg) => {
+          setS(fn);
+          setImportMsg(msg);
+        }}
+      />
+      {importMsg && (
+        <p role="status" className="rounded border border-teal-dark bg-mist p-2">{importMsg}</p>
+      )}
+
       <fieldset className="card space-y-4">
         <legend className="px-1 text-lg font-bold text-navy">Üldandmed</legend>
         <div>
@@ -100,7 +113,7 @@ export function SubmissionForm({
         <div>
           <label className="label" htmlFor="ref">Algne tellimus-/päringutekst (valikuline, ainult viide)</label>
           <textarea id="ref" className="field" rows={3} value={s.referenceText} onChange={(e) => set("referenceText", e.target.value)} />
-          <p className="hint">Seda teksti ei tõlgendata automaatselt. Kontrollid põhinevad ainult allpool sisestatud struktureeritud väljadel.</p>
+          <p className="hint">Kontrollid põhinevad ainult allpool vormi väljadel. Failist pakutud väärtused lisatakse vormi alles pärast sinu kinnitust ja neid tuleb ise üle vaadata.</p>
         </div>
         <div>
           <label className="label" htmlFor="comments">Kommentaarid</label>
