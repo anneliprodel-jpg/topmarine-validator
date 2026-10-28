@@ -17,6 +17,16 @@ describe("kogus", () => {
   });
 });
 
+describe("asukoha väljad", () => {
+  it("tühi -> null, komaga arv aktsepteeritakse, 0 ja tekst lükatakse tagasi", () => {
+    const ok = parseSubmission(raw({ waveHeightM: "0,2", currentSpeedMs: "", boatLengthM: "6.1" }));
+    expect(ok.ok && [ok.data.waveHeightM, ok.data.currentSpeedMs, ok.data.boatLengthM]).toEqual([0.2, null, 6.1]);
+    expect(parseSubmission(raw({ waveHeightM: "0" })).ok).toBe(false);
+    expect(parseSubmission(raw({ currentSpeedMs: "kiire" })).ok).toBe(false);
+    expect(parseSubmission(raw({ anchoringType: "CONCRETE" })).ok).toBe(true);
+  });
+});
+
 describe("valikulised arvud", () => {
   it("tühi -> null; koma kümnendmärk; 0 ja negatiivne tagasi", () => {
     expect(parseOptionalPositive("")).toEqual({ value: null });

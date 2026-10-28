@@ -63,6 +63,9 @@ export function rowToInput(row: SubmissionWithLines): SubmissionInput {
     shoreDetailsUnknown: row.shoreDetailsUnknown,
     siteNotes: row.siteNotes,
     winterUse: row.winterUse,
+    waveHeightM: row.siteWaveHeightM,
+    currentSpeedMs: row.siteCurrentSpeedMs,
+    boatLengthM: row.boatLengthM,
     relevantProperties: row.relevantProperties as DisputedProperty[],
   };
 }
@@ -87,6 +90,9 @@ function scalarData(i: SubmissionInput) {
     shoreDetailsUnknown: i.shoreDetailsUnknown,
     siteNotes: i.siteNotes,
     winterUse: i.winterUse,
+    siteWaveHeightM: i.waveHeightM,
+    siteCurrentSpeedMs: i.currentSpeedMs,
+    boatLengthM: i.boatLengthM,
     relevantProperties: i.relevantProperties,
   };
 }

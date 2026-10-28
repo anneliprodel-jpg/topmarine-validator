@@ -182,7 +182,7 @@ export function SubmissionForm({
       <fieldset className="card space-y-3">
         <legend className="px-1 text-lg font-bold text-navy">Moodulite ühendus</legend>
         <TriSelect id="mc" label="Kas moodulid on omavahel ühendatud?" value={s.modulesConnected} onChange={(v) => set("modulesConnected", v)} />
-        <p className="hint">Mitu moodulit võivad olla ka eraldi paigaldused.</p>
+        <p className="hint">Mitu moodulit võivad olla ka eraldi paigaldused. Kataloog nimetab otsa-, külje-, L- ja T-ühendust.</p>
         {s.modulesConnected === "YES" && (
           <>
             <Area id="cd" label="Paigutuse / ühenduse kirjeldus" value={s.connectionDescription} onChange={(v) => set("connectionDescription", v)} />
@@ -201,14 +201,15 @@ export function SubmissionForm({
           <label className="label" htmlFor="at">Ankurduse tüüp</label>
           <select id="at" className="field" value={s.anchoringType} onChange={(e) => set("anchoringType", e.target.value)}>
             <option value="">- vali -</option>
-            <option value="CHAIN">Kett</option>
-            <option value="PILES">Vaiad</option>
-            <option value="OTHER">Muu</option>
+            <option value="CHAIN">Kett (Ø10 / Ø13 mm)</option>
+            <option value="PILES">Vaiad (Ø60 mm, 1 kN)</option>
+            <option value="CONCRETE">Betoonankur (200 / 500 kg)</option>
+            <option value="OTHER">Muu (vajab inseneri ülevaatust)</option>
             <option value="UNKNOWN">Teadmata</option>
           </select>
         </div>
         <Area id="ad" label="Ankurduse üksikasjad" value={s.anchoringDetails} onChange={(v) => set("anchoringDetails", v)} />
-        <p className="hint">Rakendus ei arvuta ega kinnita ankurduse sobivust.</p>
+        <p className="hint">Kataloog loetleb ketid, betoonankrud ja vaiad. Rakendus ei arvuta ega kinnita ankurduse sobivust.</p>
       </fieldset>
 
       <fieldset className="card space-y-3">
@@ -229,6 +230,23 @@ export function SubmissionForm({
       <fieldset className="card space-y-3">
         <legend className="px-1 text-lg font-bold text-navy">Muu</legend>
         <Area id="sn" label="Asukoha märkused (valikuline)" value={s.siteNotes} onChange={(v) => set("siteNotes", v)} />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label className="label" htmlFor="wv">Laine kõrgus (m, valikuline)</label>
+            <input id="wv" inputMode="decimal" className="field" value={s.waveHeightM} onChange={(e) => set("waveHeightM", e.target.value)} />
+            <p className="hint">Kataloogi piir 0,2 m</p>
+          </div>
+          <div>
+            <label className="label" htmlFor="cv">Hoovuse kiirus (m/s, valikuline)</label>
+            <input id="cv" inputMode="decimal" className="field" value={s.currentSpeedMs} onChange={(e) => set("currentSpeedMs", e.target.value)} />
+            <p className="hint">Kataloogi piir 1 m/s</p>
+          </div>
+          <div>
+            <label className="label" htmlFor="bl">Suurima paadi pikkus (m, valikuline)</label>
+            <input id="bl" inputMode="decimal" className="field" value={s.boatLengthM} onChange={(e) => set("boatLengthM", e.target.value)} />
+            <p className="hint">Kataloogi piir 6,1 m (20 jalga)</p>
+          </div>
+        </div>
         <div>
           <label className="label" htmlFor="wu">Talvine kasutus</label>
           <select id="wu" className="field" value={s.winterUse} onChange={(e) => set("winterUse", e.target.value)}>

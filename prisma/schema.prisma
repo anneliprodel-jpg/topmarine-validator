@@ -20,23 +20,30 @@ model SourceReference {
 }
 
 model ProductVariant {
-  id              String          @id @default(cuid())
-  internalId      String          @unique
-  code            String
-  variant         String
-  kind            String
-  name            String
-  widthM          Float?
-  lengthM         Float?
-  floatsPerModule Int?
-  floatVolumeL    Int?
-  sourceId        String
-  source          SourceReference @relation(fields: [sourceId], references: [id])
-  sourceLocation  String
-  evidenceStatus  String
-  reviewRequired  Boolean         @default(false)
-  notes           String?
-  sortOrder       Int             @default(0)
+  id                 String          @id @default(cuid())
+  internalId         String          @unique
+  code               String
+  variant            String
+  kind               String
+  name               String
+  widthM             Float?
+  lengthM            Float?
+  floatsPerModule    Int?
+  floatVolumeL       Int?
+  heightPdfM         Float?
+  heightWorkbookM    Float?
+  freeboardPdfM      Float?
+  freeboardWorkbookM Float?
+  loadKnPerM2        Float?
+  loadKg             Int?
+  weightKg           Int?
+  sourceId           String
+  source             SourceReference @relation(fields: [sourceId], references: [id])
+  sourceLocation     String
+  evidenceStatus     String
+  reviewRequired     Boolean         @default(false)
+  notes              String?
+  sortOrder          Int             @default(0)
 
   @@unique([code, variant])
   @@index([code])
@@ -88,6 +95,9 @@ model Submission {
   shoreDetailsUnknown         Boolean          @default(false)
   siteNotes                   String           @default("")
   winterUse                   Boolean?
+  siteWaveHeightM             Float?
+  siteCurrentSpeedMs          Float?
+  boatLengthM                 Float?
   relevantProperties          String[]
   isDemo                      Boolean          @default(false)
   createdAt                   DateTime         @default(now())

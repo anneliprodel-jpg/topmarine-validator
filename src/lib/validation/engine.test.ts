@@ -40,6 +40,9 @@ const sub = (o: Partial<SubmissionInput> = {}): SubmissionInput => ({
   shoreDetailsUnknown: false,
   siteNotes: "",
   winterUse: null,
+  waveHeightM: null,
+  currentSpeedMs: null,
+  boatLengthM: null,
   relevantProperties: [],
   ...o,
 });
@@ -76,7 +79,8 @@ describe("kataloog: üheksa mudelit", () => {
     const sameCode = PRODUCTS.filter((p) => p.code === "02 12 04");
     expect(sameCode.map((p) => p.variant).sort()).toEqual(["MODULE", "SET"]);
     expect(PRODUCTS.filter((p) => p.variant === "MODULE")).toHaveLength(9);
-    expect(PRODUCTS.filter((p) => p.variant === "SET")).toHaveLength(1);
+    expect(PRODUCTS.filter((p) => p.variant === "SET")).toHaveLength(9);
+    expect(PRODUCTS.filter((p) => p.variant === "SET").every((p) => p.reviewRequired)).toBe(true);
   });
 
   it("andmed ei sisalda hindu", () => {
@@ -231,8 +235,16 @@ describe("SET", () => {
     expect(r.results.some((x) => /kõik komponendid/i.test(x.checked))).toBe(false);
   });
 
-  it("SET teise koodi jaoks, mida kataloogis pole -> ülevaatus", () => {
-    expect(find(run({ lines: [line({ variant: "SET", code: "02 34 08" })] }), "R-SET-01")[0].status).toBe("REVIEW");
+  it("SET on olemas kõigile üheksale koodile, kuid igaüks vajab koosseisu ülevaatust", () => {
+    for (const code of ["02 10 04", "02 34 08"]) {
+      const r = run({ lines: [line({ variant: "SET", code })] });
+      expect(find(r, "R-PROD-01")[0].status).toBe("PASS");
+      expect(find(r, "R-SET-01")[0].status).toBe("REVIEW");
+    }
+  });
+
+  it("SET ei lähe mooduli ujukite kogusummasse", () => {
+    expect(run({ lines: [line({ variant: "SET" })] }).expectedFloatsTotal).toBeNull();
   });
 });
 
@@ -259,8 +271,10 @@ describe("ühendus, ankurdus, kaldaühendus, talv", () => {
 
   it("ankurdus: puudub -> täpsustus, vaiad/muu -> ülevaatus, kett ilma üksikasjadeta -> täpsustus", () => {
     expect(find(run({ anchoringType: null }), "R-ANCH-01")[0].status).toBe("MISSING");
-    expect(find(run({ anchoringType: "PILES", anchoringDetails: "x" }), "R-ANCH-01")[0].status).toBe("REVIEW");
-    expect(find(run({ anchoringType: "OTHER" }), "R-ANCH-01")[0].status).toBe("REVIEW");
+    expect(find(run({ anchoringType: "PILES", anchoringDetails: "Ø60 mm, 1 kN" }), "R-ANCH-01")[0].status).toBe("PASS");
+    expect(find(run({ anchoringType: "CONCRETE", anchoringDetails: "200 kg" }), "R-ANCH-01")[0].status).toBe("PASS");
+    expect(find(run({ anchoringType: "CONCRETE", anchoringDetails: "" }), "R-ANCH-01")[0].status).toBe("MISSING");
+    expect(find(run({ anchoringType: "OTHER", anchoringDetails: "kallasankur" }), "R-ANCH-01")[0].status).toBe("REVIEW");
     expect(find(run({ anchoringType: "CHAIN", anchoringDetails: "" }), "R-ANCH-01")[0].status).toBe("MISSING");
     expect(find(run({ anchoringType: "UNKNOWN" }), "R-ANCH-01")[0].status).toBe("MISSING");
   });
@@ -283,6 +297,32 @@ describe("ühendus, ankurdus, kaldaühendus, talv", () => {
   });
 });
 
+describe("kataloogi piirid ja allikate sisu", () => {
+  it("laine / hoovus / paadi pikkus: ületamine -> ülevaatus, piiril -> vastab, puudub -> ei kontrollitud", () => {
+    const over = run({ waveHeightM: 0.3, currentSpeedMs: 1.5, boatLengthM: 7 });
+    for (const id of ["R-SITE-01", "R-SITE-02", "R-SITE-03"]) expect(find(over, id)[0].status).toBe("REVIEW");
+    const edge = run({ waveHeightM: 0.2, currentSpeedMs: 1, boatLengthM: 6.1 });
+    for (const id of ["R-SITE-01", "R-SITE-02", "R-SITE-03"]) expect(find(edge, id)[0].status).toBe("PASS");
+    const none = run();
+    for (const id of ["R-SITE-01", "R-SITE-02", "R-SITE-03"]) expect(find(none, id)[0].status).toBe("NA");
+  });
+
+  it("mudelite koormus, kaal ja vastuolulised kõrgus/vabaparras on kataloogis nähtavad", () => {
+    const m = PRODUCTS.find((p) => p.internalId === "SP-021204-MODULE")!;
+    expect([m.heightPdfM, m.heightWorkbookM, m.freeboardPdfM, m.freeboardWorkbookM]).toEqual([0.43, 0.39, 0.35, 0.34]);
+    expect([m.loadKnPerM2, m.loadKg, m.weightKg]).toEqual([0.68, 670, 210]);
+    expect(PRODUCTS.filter((p) => p.variant === "MODULE").every((p) => p.freeboardPdfM !== p.freeboardWorkbookM)).toBe(true);
+  });
+
+  it("uued tarvikud paigaldusjuhendist ja hinnakirjast ei ole mudelid (mõõte ei võrrelda)", () => {
+    for (const code of ["10 30 00", "10 60 00", "02 90 00", "02 12 00"]) {
+      const r = run({ lines: [line({ variant: "ACCESSORY", code, statedWidthM: 9 })] });
+      expect(find(r, "R-PROD-01")[0].status).toBe("PASS");
+      expect(find(r, "R-DIM-01")).toHaveLength(0);
+    }
+  });
+});
+
 describe("allikate vastuolud", () => {
   it("vaidlustatud omadusest sõltuv päring -> ülevaatus", () => {
     const r = run({ relevantProperties: ["HEIGHT", "LOAD"] });
@@ -292,7 +332,7 @@ describe("allikate vastuolud", () => {
 
   it("vastuolud jäävad kataloogis nähtavaks isegi kui päring neist ei sõltu", () => {
     expect(find(run(), "R-DISP-01")[0].status).toBe("NA");
-    expect(CONFLICTS.map((c) => c.property).sort()).toEqual(["FREEBOARD", "HEIGHT", "LOAD", "SUMMARY_WIDTH"]);
+    expect(CONFLICTS.map((c) => c.property).sort()).toEqual(["FREEBOARD", "HEIGHT", "INTENDED_USE", "LOAD", "SUMMARY_WIDTH"]);
     expect(CONFLICTS.find((c) => c.property === "HEIGHT")!.description).toMatch(/0,43/);
     expect(CONFLICTS.find((c) => c.property === "HEIGHT")!.description).toMatch(/0,39/);
   });

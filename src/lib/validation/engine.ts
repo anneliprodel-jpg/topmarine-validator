@@ -1,5 +1,5 @@
 // Puhas valideerimismootor: ei sõltu UI-st ega andmebaasist.
-import { RULES_VERSION } from "../catalogue/data";
+import { LIMITS, RULES_VERSION } from "../catalogue/data";
 import { fmtM, normalizeCode, sameNumber } from "./codes";
 import {
   CatalogProduct,
@@ -13,7 +13,11 @@ import {
 
 const SRC_MODEL = "Toote PDF lk 3 (rev. 01.01.2023) + hinnakiri 2026 SP leht - kahes allikas ühtivad (kinnitatud)";
 const SRC_ASSUMPTION = "MVP töövoo eeldus (mitte kontrollitud Top Marine'i poliitika)";
-const SRC_WINTER = "Toote PDF, rev. 01.01.2023 - märge, et ponton tuleb talveks lahti monteerida";
+const SRC_WINTER =
+  "Toote PDF lk 3 (rev. 01.01.2023), Allowed ice condition: ponton tuleb talveks lahti monteerida; kokkuvõttetabel C16: jääoludes ei kasutata";
+const SRC_LIMITS = "Toote PDF lk 3 (rev. 01.01.2023), lubatud piirid; laine ja paadi pikkus ühtivad kokkuvõttetabeliga";
+const ANCHOR_LISTED = "Kataloogis loetletud: kett Ø10/Ø13 mm, betoonankur 200/500 kg, vai Ø60 mm (1 kN)";
+const SRC_ANCHOR = "Toote PDF lk 3 (rev. 01.01.2023) ankurdussüsteemid; kokkuvõttetabel C17-C20 ühtib";
 const LOOSE_FLOAT_CODES = ["02 73 00", "02 74 00"];
 
 const DISPUTE_TEXT: Record<string, { label: string; detail: string }> = {
@@ -263,20 +267,27 @@ export function runValidation(
 
   // --- Ankurdus ---
   const at = input.anchoringType;
-  if (at === "PILES" || at === "OTHER") {
-    add("R-ANCH-01", "Ankurdus", "REVIEW", "Mittestandardne ankurdus vajab inseneri ülevaatust", {
-      supplied: `${at === "PILES" ? "Vaiad" : "Muu"}: ${input.anchoringDetails.trim() || "üksikasjad puuduvad"}`,
+  if (at === "OTHER") {
+    add("R-ANCH-01", "Ankurdus", "REVIEW", "Kataloogis loetlemata (mittestandardne) ankurdus vajab inseneri ülevaatust", {
+      supplied: `Muu: ${input.anchoringDetails.trim() || "üksikasjad puuduvad"}`,
+      expected: ANCHOR_LISTED,
+      source: SRC_ANCHOR,
       question: "Palun esita ankurduse üksikasjad; insener hindab lahenduse.",
     });
-  } else if (at === "CHAIN") {
+  } else if (at === "CHAIN" || at === "PILES" || at === "CONCRETE") {
+    const label = at === "CHAIN" ? "Kett" : at === "PILES" ? "Vaiad" : "Betoonankur";
     add(
       "R-ANCH-01",
       "Ankurdus",
       has(input.anchoringDetails) ? "PASS" : incomplete,
-      "Keti ankurduse üksikasjad on esitatud (sobivust ei hinnata)",
+      `${label}: kataloogis loetletud lahendus, üksikasjad on esitatud (sobivust ega mõõtmeid ei hinnata)`,
       {
         supplied: has(input.anchoringDetails) ? input.anchoringDetails.trim() : "üksikasjad puuduvad",
-        question: has(input.anchoringDetails) ? null : "Millised on ketiankurduse üksikasjad (ketisuurus, ankrutüüp, kinnituskoht)?",
+        expected: ANCHOR_LISTED,
+        source: SRC_ANCHOR,
+        question: has(input.anchoringDetails)
+          ? null
+          : `Millised on ankurduse üksikasjad (${at === "CHAIN" ? "keti Ø, ankrutüüp, kinnituskoht" : at === "PILES" ? "vaiade Ø, arv, koormus" : "ankru mass, arv, kinnituskoht"})?`,
       },
     );
   } else {
@@ -285,6 +296,11 @@ export function runValidation(
       question: "Kuidas ponton ankurdatakse (kett, vaiad, muu)? Palun lisa üksikasjad.",
     });
   }
+
+  // --- Asukoha piirid (kataloogi lubatud piirid, PDF lk 3) ---
+  siteLimit(add, "R-SITE-01", "Laine kõrgus", input.waveHeightM, LIMITS.maxWaveHeightM, "m", "laine kõrgus");
+  siteLimit(add, "R-SITE-02", "Hoovuse kiirus", input.currentSpeedMs, LIMITS.maxCurrentSpeedMs, "m/s", "hoovuse kiirus");
+  siteLimit(add, "R-SITE-03", "Paadi pikkus", input.boatLengthM, LIMITS.maxBoatLengthM, "m", "paadi pikkus");
 
   // --- Kaldaühendus ---
   const sc = input.shoreConnection;
@@ -374,6 +390,34 @@ export function runValidation(
     results,
     scope: SCOPE_STATEMENT,
   };
+}
+
+function siteLimit(
+  add: AddFn,
+  ruleId: string,
+  title: string,
+  value: number | null,
+  max: number,
+  unit: string,
+  what: string,
+) {
+  const lim = `${String(max).replace(".", ",")} ${unit}`;
+  if (value == null) {
+    add(ruleId, title, "NA", `Kliendi märgitud ${what} puudub - ei kontrollitud (mitte vastavus)`, { expected: `kataloogi piir kuni ${lim}`, source: SRC_LIMITS });
+  } else if (value > max) {
+    add(ruleId, title, "REVIEW", `Kliendi märgitud ${what} ületab kataloogi lubatud piiri`, {
+      supplied: `${String(value).replace(".", ",")} ${unit}`,
+      expected: `kuni ${lim}`,
+      source: SRC_LIMITS,
+      question: `Märgitud ${what} on suurem kui kataloogi piir ${lim}. Insener peab hindama, kas ja mis tingimustel toode sobib.`,
+    });
+  } else {
+    add(ruleId, title, "PASS", `Kliendi märgitud ${what} ei ületa kataloogi piiri (ei ole inseneri kinnitus)`, {
+      supplied: `${String(value).replace(".", ",")} ${unit}`,
+      expected: `kuni ${lim}`,
+      source: SRC_LIMITS,
+    });
+  }
 }
 
 type AddFn = (

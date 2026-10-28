@@ -26,11 +26,11 @@ export default async function Catalogue() {
       <section>
         <h2 className="mb-2 text-xl font-bold text-navy">Mudelid (üheksa mudelit, 220 l ujukid)</h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[40rem] border-collapse text-sm">
+          <table className="w-full min-w-[60rem] border-collapse text-sm">
             <thead>
               <tr className="bg-navy text-left text-white">
                 <th className="p-2">Kood</th><th className="p-2">Variant</th><th className="p-2">Laius (m)</th><th className="p-2">Pikkus (m)</th>
-                <th className="p-2">Ujukeid / moodul</th><th className="p-2">Tõendus</th><th className="p-2">Allikas</th>
+                <th className="p-2">Ujukeid / moodul</th><th className="p-2">Kõrgus PDF / hinnakiri (m)</th><th className="p-2">Vabaparras PDF / hinnakiri (m)</th><th className="p-2">Koormus kN/m² (kg)</th><th className="p-2">Kaal (kg)</th><th className="p-2">Tõendus</th><th className="p-2">Allikas</th>
               </tr>
             </thead>
             <tbody>
@@ -39,6 +39,9 @@ export default async function Catalogue() {
                   <td className="p-2 font-mono">{p.code}</td>
                   <td className="p-2">{p.variant}{p.reviewRequired && " (koosseis vajab ülevaatust)"}</td>
                   <td className="p-2">{m(p.widthM)}</td><td className="p-2">{m(p.lengthM)}</td><td className="p-2">{p.floatsPerModule}</td>
+                  <td className="p-2 text-orange-900">▲ {m(p.heightPdfM)} / {m(p.heightWorkbookM)}</td>
+                  <td className="p-2 text-orange-900">▲ {m(p.freeboardPdfM)} / {m(p.freeboardWorkbookM)}</td>
+                  <td className="p-2">{m(p.loadKnPerM2)} ({p.loadKg})</td><td className="p-2">{p.weightKg}</td>
                   <td className="p-2">{ev(p.evidenceStatus)}</td>
                   <td className="p-2">{p.source.filename}, {p.sourceLocation}</td>
                 </tr>
@@ -47,8 +50,9 @@ export default async function Catalogue() {
           </table>
         </div>
         <p className="hint mt-2">
-          SET ja MODULE kasutavad hinnakirjas sama koodi; süsteemis eristab neid sisemine ID ja variandiväli. SET näide põhineb ainult koodil
-          02 12 04 (read 13-19) ega üldista kõigile komplektidele.
+          SET (hinnakirja read 3-11) ja MODULE (read 21-29) kasutavad sama koodi; süsteemis eristab neid sisemine ID ja variandiväli. SET
+          komponentide näide (read 13-19) on ainult koodi 02 12 04 kohta ega üldista kõigile komplektidele. ▲ = allikate vahel vastuolus
+          (väärtusi ei kontrollita automaatselt). Koormus ja kaal ühtivad PDF-i ja hinnakirja vahel, kuid koormussobivust ei hinnata.
         </p>
       </section>
 

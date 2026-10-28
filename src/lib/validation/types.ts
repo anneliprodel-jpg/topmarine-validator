@@ -1,7 +1,7 @@
 export type SubmissionType = "ENQUIRY" | "ORDER";
 export type Tri = "YES" | "NO" | "UNKNOWN";
 export type LineVariant = "MODULE" | "SET" | "ACCESSORY" | "CUSTOM";
-export type AnchoringType = "CHAIN" | "PILES" | "OTHER" | "UNKNOWN";
+export type AnchoringType = "CHAIN" | "PILES" | "CONCRETE" | "OTHER" | "UNKNOWN";
 export type DisputedProperty = "HEIGHT" | "FREEBOARD" | "LOAD";
 
 export interface LineInput {
@@ -35,6 +35,10 @@ export interface SubmissionInput {
   shoreDetailsUnknown: boolean;
   siteNotes: string;
   winterUse: boolean | null;
+  /** Valikulised asukoha andmed; null = ei täpsustatud (mitte 0). */
+  waveHeightM: number | null;
+  currentSpeedMs: number | null;
+  boatLengthM: number | null;
   relevantProperties: DisputedProperty[];
 }
 

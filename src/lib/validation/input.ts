@@ -39,6 +39,9 @@ export interface RawSubmission {
   shoreDetailsUnknown: boolean;
   siteNotes: string;
   winterUse: string;
+  waveHeightM: string;
+  currentSpeedMs: string;
+  boatLengthM: string;
   relevantProperties: string[];
 }
 
@@ -101,7 +104,7 @@ export function parseSubmission(raw: RawSubmission): ParseResult {
   const shoreConnection = raw.shoreConnection ? oneOf<Tri>(raw.shoreConnection, ["YES", "NO", "UNKNOWN"]) : null;
   if (raw.shoreConnection && !shoreConnection) errors.push("Kaldaühenduse vastus on vigane.");
   const anchoringType = raw.anchoringType
-    ? oneOf<AnchoringType>(raw.anchoringType, ["CHAIN", "PILES", "OTHER", "UNKNOWN"])
+    ? oneOf<AnchoringType>(raw.anchoringType, ["CHAIN", "PILES", "CONCRETE", "OTHER", "UNKNOWN"])
     : null;
   if (raw.anchoringType && !anchoringType) errors.push("Ankurduse tüüp on vigane.");
 
@@ -144,6 +147,13 @@ export function parseSubmission(raw: RawSubmission): ParseResult {
     });
   });
 
+  const wave = parseOptionalPositive(raw.waveHeightM ?? "");
+  if (wave.error) errors.push(`Laine kõrgus: ${wave.error}`);
+  const current = parseOptionalPositive(raw.currentSpeedMs ?? "");
+  if (current.error) errors.push(`Hoovuse kiirus: ${current.error}`);
+  const boat = parseOptionalPositive(raw.boatLengthM ?? "");
+  if (boat.error) errors.push(`Paadi pikkus: ${boat.error}`);
+
   const projectName = text(raw.projectName, "Projekti nimi");
   const customerName = text(raw.customerName, "Kliendi nimi");
   if (projectName.length > 200) errors.push("Projekti nimi on liiga pikk (maksimaalselt 200 märki).");
@@ -173,6 +183,9 @@ export function parseSubmission(raw: RawSubmission): ParseResult {
     shoreDetailsUnknown: !!raw.shoreDetailsUnknown,
     siteNotes: text(raw.siteNotes, "Asukoha märkused"),
     winterUse: raw.winterUse === "YES" ? true : raw.winterUse === "NO" ? false : null,
+    waveHeightM: wave.value,
+    currentSpeedMs: current.value,
+    boatLengthM: boat.value,
     relevantProperties: props,
   };
 
@@ -204,6 +217,9 @@ export function emptyRawSubmission(type: SubmissionType = "ENQUIRY"): RawSubmiss
     shoreDetailsUnknown: false,
     siteNotes: "",
     winterUse: "",
+    waveHeightM: "",
+    currentSpeedMs: "",
+    boatLengthM: "",
     relevantProperties: [],
   };
 }
@@ -241,6 +257,9 @@ export function toRaw(i: SubmissionInput): RawSubmission {
     shoreDetailsUnknown: i.shoreDetailsUnknown,
     siteNotes: i.siteNotes,
     winterUse: i.winterUse === true ? "YES" : i.winterUse === false ? "NO" : "",
+    waveHeightM: n(i.waveHeightM),
+    currentSpeedMs: n(i.currentSpeedMs),
+    boatLengthM: n(i.boatLengthM),
     relevantProperties: [...i.relevantProperties],
   };
 }

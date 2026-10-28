@@ -27,6 +27,9 @@ const base = (): SubmissionInput => ({
   shoreDetailsUnknown: false,
   siteNotes: "",
   winterUse: null,
+  waveHeightM: null,
+  currentSpeedMs: null,
+  boatLengthM: null,
   relevantProperties: [],
 });
 

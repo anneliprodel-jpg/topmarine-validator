@@ -71,19 +71,39 @@ kaskaadina read ja käivitused. `localStorage` ei ole andmete allikas.
 
 Iga mudeli ja reegli juures on allika fail, leht/lehekülg/lahtrivahemik, kuupäev (kui teada) ja tõendusstaatus: *kinnitatud mitmest allikast*,
 *üks allikas*, *vaidlustatud*, *MVP töövoo eeldus*. Üheksa mudeli mõõdud ja ujukite arv ühtivad toote PDF-i lk 3 ja 2026. a SP hinnakirja
-vahel; need sobivad demoks, kuid **ei ole Top Marine'i ametlik insenerikinnitus**. Täpseid hinnakirja ridu ei ole siin kinnitatud
-(`source-documents/` ei olnud selle töö ajal kättesaadav - allikaid ei ole faili tasemel üle kontrollitud ja andmed põhinevad ülesande
-tekstis esitatud ülekirjutusel).
+vahel; need sobivad demoks, kuid **ei ole Top Marine'i ametlik insenerikinnitus**.
+
+**Allikafailid on läbi vaadatud** (2026-10-28, kohalikust kaustast väljaspool repot; ühtegi originaali ei commit'ita): tootePDF (3 lk),
+paigaldusjuhend (9 lk), `Selection of pontoons.xlsx` ja hinnakirja SP leht. Hindu ei impordita. Paigaldusjuhend on märgitud
+CONFIDENTIAL / PROPRIETARY - sealt kasutatakse ainult komponentide koode ja nimetusi, mitte jooniseid.
+
+Sellest tulenevad kataloogi- ja reeglimuudatused:
+
+- Hinnakirja SP leht: read 3-11 on **SET**-id, 21-29 **moodulid**, 31-39 puitkatted, 40-45 ujukid / liitmik / külgkate, 49-57 tehniline tabel.
+  Seega on iga üheksa koodi kohta nii MODULE kui SET kirje (18 mudelikirjet); SET koosseis jääb kinnitamata ja nõuab ülevaatust (näide
+  read 13-19 kehtib ainult koodile 02 12 04).
+- Uued tarvikud: puitkatted 02 x0 00, külgkate 02 90 00, piire 10 30 00, maapiilarid 10 60 00 (paigaldusjuhendist).
+- Mudelipõhine koormus (kN/m², kg) ja kaal ühtivad PDF-i ja hinnakirja vahel; need on kataloogis nähtavad, kuid koormussobivust ei hinnata.
+- **Ankurdus:** kataloog loetleb ketti (Ø10/Ø13 mm), betoonankruid (200/500 kg) ja vaiasid (Ø60 mm, 1 kN) - need loetakse "kataloogis
+  loetletuks" (üksikasjad nõutud, sobivust ei hinnata); "Muu" nõuab inseneri ülevaatust.
+- **Asukoha piirid** (PDF lk 3): laine kuni 0,2 m, hoovus kuni 1 m/s, paadi pikkus kuni 6,1 m (20 jalga). Ületamine -> ülevaatus; väärtuse
+  puudumine -> ei kontrollitud.
+- **Talv:** PDF lk 3 "Allowed ice condition: need to be dismounted for winter period"; kokkuvõttetabel C16 "No" - selgesõnaline talvekasutus
+  -> ülevaatus.
+- Ühendustüübid (otsa-, külje-, L-, T-ühendus) on PDF-is nimetatud; ühenduskomponentide kogust endiselt ei arvutata.
 
 ### Lahendamata allikate vastuolud (nähtavad rakenduses)
 
-- Kõrgus: PDF 0,43 m vs hinnakiri 0,39 m.
-- Vabaparras (freeboard): varieerub mudeliti ja PDF erineb töövihikust.
-- Kokkuvõttetabel `Selection of pontoons`, C11, loetleb ainult laiuse 2,0 m, aga detailtabelid sisaldavad 2,0 / 2,4 / 3,0 m. MVP kasutab
-  detailseid, kahes allikas ühtivaid mõõte.
-- Kokkuvõttetabel C14: 1,0 kN/m², detailtabelid: mudelipõhised väärtused.
+- Kõrgus: PDF 0,43 m vs hinnakiri 0,39 m (kokkuvõttetabel C12 ühtib hinnakirjaga - kaks allikat 0,39, üks 0,43; siiski lahendamata).
+- Vabaparras: PDF 0,34-0,37 m vs hinnakiri 0,33-0,35 m (erinevus igal mudelil) vs kokkuvõttetabel C13 0,3 m.
+- Kokkuvõttetabel C11 loetleb ainult laiuse 2,0 m, aga detailtabelid sisaldavad 2,0 / 2,4 / 3,0 m. MVP kasutab detailseid, kahes allikas
+  ühtivaid mõõte.
+- Kokkuvõttetabel C14: 1,0 kN/m², detailtabelid: mudelipõhised väärtused 0,52-1,18 kN/m².
+- Kasutusotstarve: PDF "swimming areas, beaches" vs kokkuvõttetabel "swimming, landing stages" (dokumenteeritud, ei mõjuta kontrolle).
 
 Kõrgust, vabaparrast ja koormussobivust **ei kontrollita automaatselt**; kui päring neist sõltub, on tulemuseks *Vajab inseneri ülevaatust*.
+
+**Migratsioonid:** `20261028000000_init` ja `20261029000000_add_technical_and_site_fields` (lisab ainult nullable veerud).
 
 ## Kontrollireeglid (lühidalt)
 
