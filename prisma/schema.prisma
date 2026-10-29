@@ -100,6 +100,20 @@ model Submission {
   boatLengthM                 Float?
   relevantProperties          String[]
   isDemo                      Boolean          @default(false)
+  source                      String           @default("MANUAL")
+  extractionStatus            String           @default("NONE")
+  extractionStage             String?
+  extractionError             String?
+  extractionProvider          String?
+  extractionModel             String?
+  extractionVersion           String?
+  extractionStartedAt         DateTime?
+  extractionFinishedAt        DateTime?
+  extraction                  Json?
+  evidence                    Json?
+  conflicts                   Json?
+  corrections                 Json?
+  documents                   SourceDocument[]
   createdAt                   DateTime         @default(now())
   updatedAt                   DateTime         @updatedAt
   lines                       SubmissionLine[]
@@ -120,6 +134,7 @@ model SubmissionLine {
   statedWidthM          Float?
   statedLengthM         Float?
   statedFloatsPerModule Int?
+  statedFloatsTotal     Int?
 
   @@index([submissionId])
 }
@@ -133,7 +148,28 @@ model ValidationRun {
   submissionType String
   overallStatus  String
   inputSnapshot  Json
+  evidence       Json?
+  conflicts      Json?
+  documents      Json?
+  extractor      Json?
   report         Json
 
   @@index([submissionId, createdAt])
+}
+
+model SourceDocument {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  index        Int
+  fileName     String
+  kind         String?
+  byteSize     Int        @default(0)
+  status       String
+  message      String?
+  ocrUsed      Boolean    @default(false)
+  units        Json?
+  createdAt    DateTime   @default(now())
+
+  @@index([submissionId])
 }

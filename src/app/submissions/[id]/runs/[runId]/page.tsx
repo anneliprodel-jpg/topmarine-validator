@@ -23,6 +23,14 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         <a className="btn" href={`/api/runs/${runId}/export`}>Ekspordi JSON</a>
         <Link className="btn" href={`/submissions/${id}`}>Tagasi kirje juurde</Link>
       </div>
+      {run.extractor && (
+        <p className="text-sm">Automaatne lugemine: {run.extractor.provider} / {run.extractor.model} · väljavõtte versioon {run.extractor.extractionVersion}</p>
+      )}
+      {run.documents.length > 0 && (
+        <ul className="text-sm">
+          {run.documents.map((d) => (<li key={d.index}><strong>{d.fileName}</strong> — {d.status === "OK" ? "loetud" : d.message ?? d.status}</li>))}
+        </ul>
+      )}
       <ReportView report={run.report} />
       <details className="card" open>
         <summary className="cursor-pointer font-semibold">Sisendi hetktõmmis selle käivituse ajal</summary>

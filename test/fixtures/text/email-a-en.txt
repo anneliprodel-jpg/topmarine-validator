@@ -1,0 +1,9 @@
+Hello,
+
+(SYNTHETIC SAMPLE, fictitious customer) We would like to ORDER the following.
+Customer: Sample Marine Centre Ltd (fictitious)
+Project: Sample Harbour 2027
+We order 2 pcs SP swimming pontoon 02 12 04 module, each 2.4 x 4 m, 4 floats per module.
+Requested delivery: 15.05.2027.
+Anchoring: chain 13 mm, 2 pcs.
+No shore connection. The modules are installed separately.

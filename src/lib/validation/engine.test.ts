@@ -180,7 +180,7 @@ describe("kogus ja puuduvad sisendid", () => {
   });
 
   it("tarnekuupäev minevikus -> hoiatus", () => {
-    expect(find(run({ requestedDeliveryDate: "2020-01-01" }), "R-META-02")[0].status).toBe("WARNING");
+    expect(find(run({ requestedDeliveryDate: "2020-01-01" }), "R-META-02")[0].status).toBe("CONFLICT");
   });
 });
 
@@ -189,15 +189,15 @@ describe("laius / pikkus / ujukid", () => {
     const r = run({ lines: [line({ statedWidthM: 3.0, statedLengthM: 5 })] });
     const w = find(r, "R-DIM-01")[0];
     const l = find(r, "R-DIM-02")[0];
-    expect(w.status).toBe("WARNING");
+    expect(w.status).toBe("CONFLICT");
     expect(w.expected).toContain("2,4 m");
     expect(w.supplied).toBe("3 m");
-    expect(l.status).toBe("WARNING");
+    expect(l.status).toBe("CONFLICT");
     expect(find(r, "R-PROD-01")[0].supplied).toContain("02 12 04");
   });
 
   it("ujukite arv mooduli kohta: lahknevus ja vastavus", () => {
-    expect(find(run({ lines: [line({ statedFloatsPerModule: 6 })] }), "R-FLT-01")[0].status).toBe("WARNING");
+    expect(find(run({ lines: [line({ statedFloatsPerModule: 6 })] }), "R-FLT-01")[0].status).toBe("CONFLICT");
     expect(find(run({ lines: [line({ statedFloatsPerModule: 4 })] }), "R-FLT-01")[0].status).toBe("PASS");
   });
 
@@ -222,7 +222,7 @@ describe("sisaldatud vs eraldi ujukid", () => {
 
   it("eraldi ujukirida (02 73 00) on varuosarida, hoiatus ega mõjuta mooduli ujukite kogusummat", () => {
     const r = run({ lines: [line({ quantity: 1 }), line({ variant: "ACCESSORY", code: "02 73 00", quantity: 2 })] });
-    expect(find(r, "R-FLT-03")[0].status).toBe("WARNING");
+    expect(find(r, "R-FLT-03")[0].status).toBe("MISSING");
     expect(r.expectedFloatsTotal).toBe(4);
   });
 });
@@ -259,7 +259,7 @@ describe("ühendus, ankurdus, kaldaühendus, talv", () => {
     const r = run({ modulesConnected: "YES", connectionDescription: "Kõrvuti", lines: [line({ quantity: 3 })] });
     expect(find(r, "R-CONN-01")[0].status).toBe("PASS");
     const q = find(r, "R-CONN-02")[0];
-    expect(q.status).toBe("WARNING");
+    expect(q.status).toBe("MISSING");
     expect(q.expected).toBeNull(); // ühtegi ühenduskomponentide kogust ei järeldata
   });
 
@@ -367,9 +367,9 @@ describe("päring vs tellimus", () => {
     const order = run({ ...incompleteBase });
     const enq = run({ ...incompleteBase, type: "ENQUIRY" });
     expect(find(order, "R-ANCH-01")[0].status).toBe("MISSING");
-    expect(find(enq, "R-ANCH-01")[0].status).toBe("WARNING");
+    expect(find(enq, "R-ANCH-01")[0].status).toBe("MISSING");
     expect(find(order, "R-LINE-01")[0].status).toBe("MISSING");
-    expect(find(enq, "R-LINE-01")[0].status).toBe("WARNING");
+    expect(find(enq, "R-LINE-01")[0].status).toBe("MISSING");
     expect(enq.overallText).toMatch(/ei ole tagasi lükatud/);
     expect(find(enq, "R-ANCH-01")[0].question).toBeTruthy();
   });
@@ -391,15 +391,15 @@ describe("näidisjuhtumid", () => {
     expect(ids).toEqual(expect.arrayContaining(["R-META-02", "R-CONN-01", "R-ANCH-01"]));
     const enq = runValidation({ ...B.input, type: "ENQUIRY" }, catalog, NOW);
     expect(find(enq, "R-META-02")[0].status).toBe("NA");
-    expect(find(enq, "R-ANCH-01")[0].status).toBe("WARNING");
+    expect(find(enq, "R-ANCH-01")[0].status).toBe("MISSING");
     expect(find(enq, "R-CONN-01")[0].status).toBe("MISSING"); // täpsustus säilib
     expect(enq.overallStatus).not.toBe("REVIEW");
   });
 
   it("C tuvastab laiuse ja ujukite lahknevuse ning jätab toote 02 12 04", () => {
     const r = runValidation(C.input, catalog, NOW);
-    expect(find(r, "R-DIM-01")[0].status).toBe("WARNING");
-    expect(find(r, "R-FLT-01")[0].status).toBe("WARNING");
+    expect(find(r, "R-DIM-01")[0].status).toBe("CONFLICT");
+    expect(find(r, "R-FLT-01")[0].status).toBe("CONFLICT");
     expect(find(r, "R-PROD-01")[0].supplied).toBe("02 12 04 MODULE");
   });
 
@@ -422,7 +422,7 @@ describe("muutumatud raportid", () => {
     expect(snapshot.lines[0].statedWidthM).toBe(3.0);
     const rerun = runValidation(input, catalog, new Date("2026-10-29T10:00:00Z"));
     expect(find(rerun, "R-DIM-01")[0].status).toBe("PASS");
-    expect(find(report, "R-DIM-01")[0].status).toBe("WARNING");
+    expect(find(report, "R-DIM-01")[0].status).toBe("CONFLICT");
     expect(report.rulesVersion).toBeTruthy();
     expect(report.generatedAt).toBe(NOW.toISOString());
   });

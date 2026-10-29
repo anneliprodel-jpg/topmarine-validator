@@ -10,12 +10,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 const NAV = [
-  ["/", "Avaleht"],
-  ["/submissions/new?type=ENQUIRY", "Uus päring"],
-  ["/submissions/new?type=ORDER", "Uus tellimus"],
+  ["/", "Lisa tellimus või päring"],
   ["/history", "Varasemad kontrollid"],
   ["/catalogue", "Tooted ja kontrollireeglid"],
   ["/demos", "Näidisjuhtumid"],
+  ["/submissions/new?type=ORDER", "Sisesta käsitsi"],
 ] as const;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

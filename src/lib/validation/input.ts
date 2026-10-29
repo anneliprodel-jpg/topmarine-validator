@@ -17,6 +17,7 @@ export interface RawLine {
   statedWidthM: string;
   statedLengthM: string;
   statedFloatsPerModule: string;
+  statedFloatsTotal: string;
 }
 
 export interface RawSubmission {
@@ -120,7 +121,7 @@ export function parseSubmission(raw: RawSubmission): ParseResult {
   const lines: LineInput[] = [];
   rawLines.slice(0, MAX_LINES).forEach((l, i) => {
     const n = i + 1;
-    const blank = [l.variant, l.code, l.customName, l.quantity, l.statedWidthM, l.statedLengthM, l.statedFloatsPerModule].every(
+    const blank = [l.variant, l.code, l.customName, l.quantity, l.statedWidthM, l.statedLengthM, l.statedFloatsPerModule, l.statedFloatsTotal].every(
       (x) => (x ?? "").trim() === "",
     );
     if (blank) return;
@@ -134,6 +135,8 @@ export function parseSubmission(raw: RawSubmission): ParseResult {
     if (len.error) errors.push(`Rida ${n}, pikkus: ${len.error}`);
     const f = parseOptionalPositive(l.statedFloatsPerModule, true);
     if (f.error) errors.push(`Rida ${n}, ujukeid mooduli kohta: ${f.error}`);
+    const ft = parseOptionalPositive(l.statedFloatsTotal ?? "", true);
+    if (ft.error) errors.push(`Rida ${n}, ujukeid kokku: ${ft.error}`);
     const code = text(l.code, `Rida ${n}, kood`);
     const customName = text(l.customName, `Rida ${n}, kirjeldus`);
     lines.push({
@@ -144,6 +147,7 @@ export function parseSubmission(raw: RawSubmission): ParseResult {
       statedWidthM: w.value,
       statedLengthM: len.value,
       statedFloatsPerModule: f.value,
+      statedFloatsTotal: ft.value,
     });
   });
 
@@ -193,7 +197,7 @@ export function parseSubmission(raw: RawSubmission): ParseResult {
 }
 
 export function emptyRawLine(): RawLine {
-  return { variant: "", code: "", customName: "", quantity: "", statedWidthM: "", statedLengthM: "", statedFloatsPerModule: "" };
+  return { variant: "", code: "", customName: "", quantity: "", statedWidthM: "", statedLengthM: "", statedFloatsPerModule: "", statedFloatsTotal: "" };
 }
 
 export function emptyRawSubmission(type: SubmissionType = "ENQUIRY"): RawSubmission {
@@ -243,6 +247,7 @@ export function toRaw(i: SubmissionInput): RawSubmission {
           statedWidthM: n(l.statedWidthM),
           statedLengthM: n(l.statedLengthM),
           statedFloatsPerModule: n(l.statedFloatsPerModule),
+          statedFloatsTotal: n(l.statedFloatsTotal ?? null),
         }))
       : [emptyRawLine()],
     modulesConnected: i.modulesConnected ?? "",

@@ -1,5 +1,6 @@
 // Puhas valideerimismootor: ei sõltu UI-st ega andmebaasist.
 import { LIMITS, RULES_VERSION } from "../catalogue/data";
+import type { ConflictMap, DocSummary, EvidenceMap } from "../evidence";
 import { fmtM, normalizeCode, sameNumber } from "./codes";
 import {
   CatalogProduct,
@@ -26,10 +27,61 @@ const DISPUTE_TEXT: Record<string, { label: string; detail: string }> = {
   LOAD: { label: "koormus", detail: "Kokkuvõttetabel 1,0 kN/m² vs mudelipõhised väärtused detailtabelites" },
 };
 
+/** Valikuline kontekst: dokumentidest loetud andmete allikaviited, dokumentidevahelised vastuolud ja dokumentide olek. */
+export interface ValidationContext {
+  evidence?: EvidenceMap;
+  conflicts?: ConflictMap;
+  documents?: DocSummary[];
+}
+
+const FIELD_LABEL: Record<string, string> = {
+  type: "tüüp (päring/tellimus)",
+  requestedDeliveryDate: "soovitud tarnekuupäev",
+  quantity: "kogus",
+  statedWidthM: "laius",
+  statedLengthM: "pikkus",
+  statedFloatsPerModule: "ujukite arv mooduli kohta",
+  statedFloatsTotal: "ujukite arv kokku",
+  code: "tootekood",
+  variant: "variant (moodul/komplekt)",
+  modulesConnected: "moodulite ühendus",
+  anchoringType: "ankurduse tüüp",
+  shoreConnection: "kaldaühendus",
+  winterUse: "talvekasutus",
+  waveHeightM: "laine kõrgus",
+  currentSpeedMs: "hoovuse kiirus",
+  boatLengthM: "paadi pikkus",
+  merge: "tootridade vastavus",
+};
+
+/** Millised väljad toetavad antud tulemust (allikaviidete kuvamiseks). */
+function fieldsFor(ruleId: string, lineNumber: number | null): string[] {
+  const l = lineNumber != null ? `lines.${lineNumber - 1}.` : "";
+  switch (ruleId) {
+    case "R-META-01": return ["customerName", "projectName"];
+    case "R-META-02": return ["requestedDeliveryDate"];
+    case "R-LINE-02": return [l + "quantity"];
+    case "R-PROD-01": case "R-PROD-02": case "R-PROD-03": case "R-SET-01": case "R-OLD-01": return [l + "code", l + "variant", l + "customName", l.slice(0, -1)].filter(Boolean);
+    case "R-DIM-01": return [l + "statedWidthM"];
+    case "R-DIM-02": return [l + "statedLengthM"];
+    case "R-FLT-01": return [l + "statedFloatsPerModule"];
+    case "R-FLT-04": return [l + "statedFloatsTotal", l + "quantity"];
+    case "R-CONN-01": case "R-CONN-02": return ["modulesConnected", "connectionDescription"];
+    case "R-ANCH-01": return ["anchoringType", "anchoringDetails"];
+    case "R-SHORE-01": return ["shoreConnection", "gangwayDetails", "shoreSupportDetails"];
+    case "R-WINTER-01": return ["winterUse"];
+    case "R-SITE-01": return ["waveHeightM"];
+    case "R-SITE-02": return ["currentSpeedMs"];
+    case "R-SITE-03": return ["boatLengthM"];
+    default: return [];
+  }
+}
+
 export function runValidation(
   input: SubmissionInput,
   catalog: CatalogProduct[],
   now: Date = new Date(),
+  ctx: ValidationContext = {},
 ): ValidationReport {
   const isOrder = input.type === "ORDER";
   const results: CheckResult[] = [];
@@ -40,8 +92,10 @@ export function runValidation(
     status: CheckStatus,
     checked: string,
     o: Partial<Pick<CheckResult, "supplied" | "expected" | "source" | "question" | "lineNumber">> = {},
-  ) =>
+  ) => {
+    const ev = [...new Map(fieldsFor(ruleId, o.lineNumber ?? null).flatMap((f) => ctx.evidence?.[f] ?? []).map((e) => [`${e.docIndex}|${e.locator}|${e.excerpt}`, e])).values()];
     results.push({
+      evidence: ev.length ? ev : undefined,
       ruleId,
       title,
       status,
@@ -52,9 +106,27 @@ export function runValidation(
       question: o.question ?? null,
       lineNumber: o.lineNumber ?? null,
     });
+  };
+
+  /** Dokumentidevaheline vastuolu, mida kasutaja ei ole veel lahendanud (väli on endiselt tühi). */
+  const unresolved = (key: string): boolean => {
+    if (!ctx.conflicts?.[key]) return false;
+    const m = key.match(/^lines\.(\d+)\.(.+)$/);
+    if (!m) {
+      const v = (input as unknown as Record<string, unknown>)[key];
+      return v == null || v === "";
+    }
+    if (m[2] === "merge") return true;
+    const ln = input.lines[Number(m[1])] as unknown as Record<string, unknown> | undefined;
+    if (!ln) return false;
+    const fieldName = m[2] === "customName" ? "customName" : m[2];
+    const v = ln[fieldName];
+    return v == null || v === "";
+  };
 
   /** Puuduv info: tellimusel puuduv info, päringul pehmem hoiatus (täpsustus). */
-  const incomplete: CheckStatus = isOrder ? "MISSING" : "WARNING";
+  // Puuduv info nõuab täpsustust nii päringul kui tellimusel; päring ei ole sellega tagasi lükatud (vt kokkuvõte).
+  const incomplete: CheckStatus = "MISSING";
   const has = (s: string | null | undefined) => !!s && s.trim().length > 0;
 
   // --- Üldandmed ---
@@ -66,12 +138,14 @@ export function runValidation(
 
   if (isOrder) {
     const date = input.requestedDeliveryDate;
-    if (!date) {
+    if (!date && unresolved("requestedDeliveryDate")) {
+      // vastuolu on esitatud eraldi (R-DOC-02)
+    } else if (!date) {
       add("R-META-02", "Soovitud tarneaeg", "MISSING", "Tellimusel on soovitud tarnekuupäev", {
         question: "Mis on kliendi soovitud tarnekuupäev?",
       });
     } else if (new Date(`${date}T23:59:59Z`).getTime() < now.getTime()) {
-      add("R-META-02", "Soovitud tarneaeg", "WARNING", "Tarnekuupäev ei ole minevikus", {
+      add("R-META-02", "Soovitud tarneaeg", "CONFLICT", "Tarnekuupäev ei ole minevikus", {
         supplied: date,
         question: "Soovitud tarnekuupäev on minevikus. Kas kuupäev on õige?",
       });
@@ -113,7 +187,9 @@ export function runValidation(
     const opt = { lineNumber: n };
     const q = line.quantity;
     const qtyOk = q != null && Number.isInteger(q) && q > 0;
-    add(
+    if (!qtyOk && unresolved(`lines.${idx}.quantity`)) {
+      // vastuolu on esitatud eraldi (R-DOC-02)
+    } else add(
       "R-LINE-02",
       "Kogus",
       qtyOk ? "PASS" : "MISSING",
@@ -165,6 +241,20 @@ export function runValidation(
     compareDim(add, "R-DIM-01", "Laius", line.statedWidthM, p.widthM, p, n, line, catalog, "width");
     compareDim(add, "R-DIM-02", "Pikkus", line.statedLengthM, p.lengthM, p, n, line, catalog, "length");
 
+    if (line.statedFloatsTotal != null && qtyOk && p.floatsPerModule != null && p.variant === "MODULE") {
+      const expectedTotal = (q as number) * p.floatsPerModule;
+      add("R-FLT-04", "Ujukeid kokku (kliendi väärtus)", line.statedFloatsTotal === expectedTotal ? "PASS" : "CONFLICT", "Kliendi märgitud ujukite koguarv = kogus × ujukeid mooduli kohta", {
+        ...opt,
+        supplied: `${line.statedFloatsTotal} ujukit kokku (kogus ${q})`,
+        expected: `${expectedTotal} ujukit kokku (${q} × ${p.floatsPerModule})`,
+        source: SRC_MODEL,
+        question:
+          line.statedFloatsTotal === expectedTotal
+            ? null
+            : `Klient märkis kokku ${line.statedFloatsTotal} ujukit, kuid ${q} × mudel ${p.code} (${p.floatsPerModule} ujukit mooduli kohta) annab ${expectedTotal}. Kas kogus, mudel või ujukite arv on vale?`,
+      });
+    }
+
     if (line.statedFloatsPerModule == null) {
       add("R-FLT-01", "Ujukeid mooduli kohta", "NA", "Kliendi märgitud ujukite arv mooduli kohta puudub - ei kontrollitud (mitte vastavus)", {
         ...opt,
@@ -179,7 +269,7 @@ export function runValidation(
         source: SRC_MODEL,
       });
     } else {
-      add("R-FLT-01", "Ujukeid mooduli kohta", "WARNING", "Ujukite arv ühe mooduli kohta EI ühti mudeliga", {
+      add("R-FLT-01", "Ujukeid mooduli kohta", "CONFLICT", "Ujukite arv ühe mooduli kohta EI ühti mudeliga", {
         ...opt,
         supplied: `${line.statedFloatsPerModule} ujukit ühe mooduli kohta`,
         expected: `${p.floatsPerModule} ujukit ühe mooduli kohta (mudel ${p.code})`,
@@ -188,6 +278,49 @@ export function runValidation(
       });
     }
   });
+
+  // --- Dokumentidevahelised vastuolud (lahendamata) ---
+  for (const [key, alts] of Object.entries(ctx.conflicts ?? {})) {
+    if (!unresolved(key)) continue;
+    const m = key.match(/^lines\.(\d+)\.(.+)$/);
+    const lineNumber = m ? Number(m[1]) + 1 : null;
+    const fname = m ? m[2] : key;
+    const label = FIELD_LABEL[fname] ?? fname;
+    const where = (e: { fileName: string; locator: string }) => `${e.fileName || "dokument"}, ${e.locator}`;
+    results.push({
+      ruleId: "R-DOC-02",
+      title: "Dokumentide vastuolu",
+      status: "CONFLICT",
+      checked: fname === "merge" ? "Dokumentide tootread vastavad üksteisele" : `Dokumendid esitavad ${label} ühtemoodi`,
+      supplied: alts.map((a) => `"${a.value}" (${a.evidence.slice(0, 2).map(where).join("; ")})`).join("  vs  "),
+      expected: null,
+      source: "Kliendi dokumendid (ei ole kataloogi vastuolu)",
+      question:
+        fname === "merge"
+          ? "Dokumentides on sama toode erineva arvu ridadena. Millised read kirjeldavad sama toodet ja milline kogus kehtib?"
+          : `Dokumendid ütlevad ${label} kohta erinevat. Milline väärtus kehtib? (Paranda väärtus vormis ja kontrolli uuesti.)`,
+      lineNumber,
+      evidence: alts.flatMap((a) => a.evidence),
+    });
+  }
+
+  // --- Dokumentide olek ---
+  const docs = ctx.documents ?? [];
+  const notFullyRead = docs.filter((d) => d.status !== "OK");
+  if (docs.length > 0) {
+    if (notFullyRead.length > 0) {
+      add("R-DOC-01", "Dokumentide lugemine", "MISSING", "Kõik dokumendid on täielikult loetud", {
+        supplied: notFullyRead.map((d) => `${d.fileName}: ${d.message ?? d.status}`).join(" | "),
+        expected: "Kõik lisatud dokumendid loetavad",
+        source: "Dokumentide lugemise olek",
+        question: "Mõni dokument ei ole täielikult loetud, seega tulemus hõlmab ainult loetud sisu. Palun saada loetav versioon või sisesta puuduv info käsitsi.",
+      });
+    } else {
+      add("R-DOC-01", "Dokumentide lugemine", "PASS", `Kõik ${docs.length} dokumenti on loetud${docs.some((d) => d.ocrUsed) ? " (osa OCR-iga - kontrolli väärtusi)" : ""}`, {
+        source: "Dokumentide lugemise olek",
+      });
+    }
+  }
 
   // --- Ujukite koondarvutus ---
   if (moduleLineCount > 0) {
@@ -202,7 +335,7 @@ export function runValidation(
       },
     );
     if (looseFloatLines > 0) {
-      add("R-FLT-03", "Eraldi ujukid", "WARNING", "Eraldi ujukirida koos täielike moodulitega", {
+      add("R-FLT-03", "Eraldi ujukid", "MISSING", "Eraldi ujukirida koos täielike moodulitega", {
         supplied: `${looseFloatLines} eraldi ujukirida`,
         expected: "Täielik moodul sisaldab juba ujukid; eraldi ujukid on varuosad",
         source: "Toote PDF lk 2 komponendid (üks allikas)",
@@ -232,7 +365,7 @@ export function runValidation(
     add(
       "R-CONN-02",
       "Ühenduskomponentide kogus",
-      compUnknown ? "WARNING" : "NA",
+      compUnknown ? "MISSING" : "NA",
       "Ühenduskomponentide kogust ei arvutata (universaalset valemit ei ole kinnitatud)",
       {
         supplied: has(input.connectionComponents) ? input.connectionComponents.trim() : "komponendid puuduvad",
@@ -240,7 +373,7 @@ export function runValidation(
       },
     );
     if (moduleQtySum > 0 && moduleQtySum < 2) {
-      add("R-CONN-01", "Moodulite ühendus", "WARNING", "Ühendus on märgitud, kuid mooduleid on kokku alla kahe", {
+      add("R-CONN-01", "Moodulite ühendus", "CONFLICT", "Ühendus on märgitud, kuid mooduleid on kokku alla kahe", {
         supplied: `Moodulite arv kokku: ${moduleQtySum}`,
         question: "Mis moodulid omavahel ühendatakse? Praegu on tellitud ainult üks moodul.",
       });
@@ -363,7 +496,7 @@ export function runValidation(
     }
   }
 
-  const counts: Record<CheckStatus, number> = { PASS: 0, MISSING: 0, WARNING: 0, REVIEW: 0, NA: 0 };
+  const counts: Record<CheckStatus, number> = { PASS: 0, MISSING: 0, CONFLICT: 0, WARNING: 0, REVIEW: 0, NA: 0 };
   for (const res of results) counts[res.status] += 1;
 
   let overallStatus: CheckStatus = "PASS";
@@ -371,13 +504,14 @@ export function runValidation(
   if (counts.REVIEW > 0) {
     overallStatus = "REVIEW";
     overallText = "Vajab inseneri ülevaatust.";
+  } else if (counts.CONFLICT > 0) {
+    overallStatus = "CONFLICT";
+    overallText = isOrder ? "Tellimuses on vastuolusid (dokumentide vahel või kataloogiga): vaja selgitada." : "Päringus on vastuolusid, mida tuleb selgitada (päringut ei lükata tagasi).";
   } else if (counts.MISSING > 0) {
     overallStatus = "MISSING";
     overallText = isOrder ? "Tellimus ei ole kontrolliks valmis: puudub info." : "Päring vajab täpsustusi (ei ole tagasi lükatud).";
-  } else if (counts.WARNING > 0) {
-    overallStatus = "WARNING";
-    overallText = isOrder ? "Hoiatused - vaata üle." : "Päring vajab täpsustusi (ei ole tagasi lükatud).";
   }
+  if (notFullyRead.length > 0) overallText += " Mitte kõik dokumendid on täielikult loetud: tulemus hõlmab ainult loetud sisu.";
 
   return {
     rulesVersion: RULES_VERSION,
@@ -543,7 +677,7 @@ function compareDim(
         (line.statedLengthM == null || (c.lengthM != null && sameNumber(c.lengthM, line.statedLengthM))),
     )
     .map((c) => c.code);
-  add(ruleId, title, "WARNING", `Kliendi märgitud ${title.toLowerCase()} EI ühti mudeliga`, {
+  add(ruleId, title, "CONFLICT", `Kliendi märgitud ${title.toLowerCase()} EI ühti mudeliga`, {
     ...opt,
     supplied: fmtM(stated),
     expected: `${fmtM(expected)} (mudel ${p.code})`,

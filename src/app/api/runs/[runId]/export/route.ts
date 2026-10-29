@@ -15,6 +15,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ runId: 
       submissionType: run.submissionType,
       overallStatus: run.overallStatus,
       inputSnapshot: run.inputSnapshot,
+      evidence: run.evidence,
+      documents: run.documents,
+      extractor: run.extractor,
       report: run.report,
     };
     return new Response(JSON.stringify(body, null, 2), {

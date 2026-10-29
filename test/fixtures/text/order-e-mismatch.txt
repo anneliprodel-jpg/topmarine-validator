@@ -1,0 +1,8 @@
+SÜNTEETILINE NÄIDIS (fiktiivne klient)
+Tellimus
+Klient: Näidis Merekeskus OÜ (fiktiivne)
+Projekt: Näidis Sadam 2027
+Tellime 1 tk 02 12 04 moodul, laius 3,0 m, pikkus 4 m, 6 ujukit mooduli kohta.
+Soovitud tarne: 15.05.2027.
+Ankurdus: ketiankur 13 mm.
+Kaldaühendust ei ole. Moodulid paigaldatakse eraldi.

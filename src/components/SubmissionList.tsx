@@ -19,7 +19,15 @@ export function SubmissionList({ rows }: { rows: Awaited<ReturnType<typeof listS
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {r.lastStatus ? <StatusBadge status={r.lastStatus} /> : <NotChecked />}
+            {r.extractionStatus === "PROCESSING" ? (
+              <span className="rounded-full border border-teal-dark px-2.5 py-0.5 text-sm font-semibold">⏳ Töötlemisel</span>
+            ) : r.extractionStatus === "FAILED" ? (
+              <span className="rounded-full border border-red-700 bg-red-50 px-2.5 py-0.5 text-sm font-semibold text-red-900">✖ Analüüs ebaõnnestus</span>
+            ) : r.lastStatus ? (
+              <StatusBadge status={r.lastStatus} />
+            ) : (
+              <NotChecked />
+            )}
             {r.stale && <span className="text-sm text-amber-900">⟳ muudetud pärast kontrolli</span>}
           </div>
         </li>

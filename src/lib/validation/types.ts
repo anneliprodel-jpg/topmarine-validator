@@ -1,3 +1,5 @@
+import type { Evidence } from "../evidence";
+
 export type SubmissionType = "ENQUIRY" | "ORDER";
 export type Tri = "YES" | "NO" | "UNKNOWN";
 export type LineVariant = "MODULE" | "SET" | "ACCESSORY" | "CUSTOM";
@@ -13,6 +15,8 @@ export interface LineInput {
   statedWidthM: number | null;
   statedLengthM: number | null;
   statedFloatsPerModule: number | null;
+  /** Kliendi märgitud ujukeid KOKKU selle rea kohta (erinev mooduli-põhisest arvust). */
+  statedFloatsTotal?: number | null;
 }
 
 export interface SubmissionInput {
@@ -55,7 +59,8 @@ export interface CatalogProduct {
   sourceLabel: string;
 }
 
-export type CheckStatus = "PASS" | "MISSING" | "WARNING" | "REVIEW" | "NA";
+/** WARNING on vana (enne 2026-10-29 salvestatud raportid); mootor seda enam ei väljasta. */
+export type CheckStatus = "PASS" | "MISSING" | "CONFLICT" | "WARNING" | "REVIEW" | "NA";
 
 export interface CheckResult {
   ruleId: string;
@@ -67,6 +72,8 @@ export interface CheckResult {
   source: string;
   question: string | null;
   lineNumber: number | null;
+  /** Kliendi väidete allikaviited (kui sisend tuli dokumentidest). */
+  evidence?: Evidence[];
 }
 
 export interface ValidationReport {
@@ -84,7 +91,8 @@ export interface ValidationReport {
 export const STATUS_LABEL: Record<CheckStatus, string> = {
   PASS: "Vastab",
   MISSING: "Puuduv info",
-  WARNING: "Hoiatus",
+  CONFLICT: "Vastuolu",
+  WARNING: "Hoiatus (vana raport)",
   REVIEW: "Vajab inseneri ülevaatust",
   NA: "Ei kohaldu",
 };
@@ -92,6 +100,7 @@ export const STATUS_LABEL: Record<CheckStatus, string> = {
 export const STATUS_SYMBOL: Record<CheckStatus, string> = {
   PASS: "✔",
   MISSING: "?",
+  CONFLICT: "≠",
   WARNING: "▲",
   REVIEW: "⚑",
   NA: "–",

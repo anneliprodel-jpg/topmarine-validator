@@ -2,6 +2,7 @@ import { CheckStatus, STATUS_LABEL, STATUS_SYMBOL } from "@/lib/validation/types
 
 const STYLE: Record<CheckStatus, string> = {
   PASS: "bg-emerald-50 text-emerald-900 border-emerald-700",
+  CONFLICT: "bg-orange-50 text-orange-900 border-orange-700",
   MISSING: "bg-amber-50 text-amber-900 border-amber-700",
   WARNING: "bg-orange-50 text-orange-900 border-orange-700",
   REVIEW: "bg-red-50 text-red-900 border-red-700",

@@ -389,6 +389,9 @@ export const RULES: RuleData[] = [
   r("R-SHORE-01", "Kaldaühendus", "Kui kaldaühendus on soovitud, on vaja ligipääsusilla ja kaldatoe andmeid.", 18, { isAssumption: true, sourceKey: "MVP_ASSUMPTION" }),
   r("R-WINTER-01", "Talvine kasutus", "Selge talvekasutuse soovi korral inseneri ülevaatus; toote PDF lk 3 (Allowed ice condition): ponton tuleb talveks lahti monteerida; kokkuvõttetabel C16: jääoludes ei kasutata.", 19, { evidenceStatus: "CORROBORATED", sourceKey: "PDF_P3" }),
   r("R-DISP-01", "Vaidlustatud omadused", "Kõrgus, vabaparras ja koormus on allikate vahel vastuolus; sõltuvuse korral inseneri ülevaatus.", 20, { evidenceStatus: "DISPUTED", sourceKey: "XLSX_SELECTION" }),
+  r("R-FLT-04", "Ujukeid kokku (kliendi väärtus)", "Kui klient märgib ujukite koguarvu, võrreldakse seda arvuga kogus × mudeli ujukite arv; mooduli kohta ja kokku väärtusi ei segata.", 12, { evidenceStatus: "CORROBORATED", sourceKey: "PDF_P3" }),
+  r("R-DOC-01", "Dokumentide lugemine", "Loetamatu, osaliselt loetud või parooliga dokument välistab tingimusteta järelduse, et kõik dokumendid on kontrollitud.", 25, { isAssumption: true, sourceKey: "MVP_ASSUMPTION" }),
+  r("R-DOC-02", "Dokumentide vastuolu", "Kui kliendi dokumendid (nt e-kiri ja manus) väidavad sama välja kohta erinevat, näidatakse mõlemat allikat ega valita ühte.", 26, { isAssumption: true, sourceKey: "MVP_ASSUMPTION" }),
   r("R-REF-01", "Algne tellimustekst", "Algne tekst on ainult viide; seda ei tõlgendata automaatselt.", 21, { isAssumption: true, sourceKey: "MVP_ASSUMPTION" }),
   // Keelatud / kinnitamata reeglid (ei ole rakendatud)
   r("X-CONN-QTY", "Ühenduskomponentide valem 2 x (moodulid - 1)", "Vana valem; universaalselt kehtivat kogust ei ole allikatest kinnitatud.", 90, { status: "DISABLED", evidenceStatus: "ASSUMPTION", sourceKey: "MVP_ASSUMPTION" }),

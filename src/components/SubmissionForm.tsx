@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { saveAction } from "@/app/actions";
-import { FileImport } from "./FileImport";
 import { emptyRawLine, type RawLine, type RawSubmission } from "@/lib/validation/input";
 
 export interface ProductHint {
@@ -28,7 +27,6 @@ export function SubmissionForm({
   const [s, setS] = useState<RawSubmission>(initial);
   const [errors, setErrors] = useState<string[]>([]);
   const [pending, start] = useTransition();
-  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const set = <K extends keyof RawSubmission>(k: K, v: RawSubmission[K]) => setS((p) => ({ ...p, [k]: v }));
   const setLine = (i: number, patch: Partial<RawLine>) =>
@@ -71,17 +69,6 @@ export function SubmissionForm({
         </div>
       )}
 
-      <FileImport
-        knownCodes={[...new Set(products.map((p) => p.code))]}
-        onApply={(fn, msg) => {
-          setS(fn);
-          setImportMsg(msg);
-        }}
-      />
-      {importMsg && (
-        <p role="status" className="rounded border border-teal-dark bg-mist p-2">{importMsg}</p>
-      )}
-
       <fieldset className="card space-y-4">
         <legend className="px-1 text-lg font-bold text-navy">Üldandmed</legend>
         <div>
@@ -113,7 +100,7 @@ export function SubmissionForm({
         <div>
           <label className="label" htmlFor="ref">Algne tellimus-/päringutekst (valikuline, ainult viide)</label>
           <textarea id="ref" className="field" rows={3} value={s.referenceText} onChange={(e) => set("referenceText", e.target.value)} />
-          <p className="hint">Kontrollid põhinevad ainult allpool vormi väljadel. Failist pakutud väärtused lisatakse vormi alles pärast sinu kinnitust ja neid tuleb ise üle vaadata.</p>
+          <p className="hint">Kontrollid põhinevad allpool vormi väljadel. Dokumentide automaatne lugemine toimub avalehel ("Lisa tellimus või päring"); käsitsi sisestamine on teisene tööriist.</p>
         </div>
         <div>
           <label className="label" htmlFor="comments">Kommentaarid</label>
@@ -166,7 +153,7 @@ export function SubmissionForm({
                   </div>
                 )}
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div className="mt-3 grid gap-3 sm:grid-cols-4">
                 <div>
                   <label className="label" htmlFor={`w${i}`}>Kliendi märgitud laius (m)</label>
                   <input id={`w${i}`} inputMode="decimal" className="field" value={l.statedWidthM} onChange={(e) => setLine(i, { statedWidthM: e.target.value })} />
@@ -178,6 +165,10 @@ export function SubmissionForm({
                 <div>
                   <label className="label" htmlFor={`f${i}`}>Kliendi märgitud ujukeid mooduli kohta</label>
                   <input id={`f${i}`} inputMode="numeric" className="field" value={l.statedFloatsPerModule} onChange={(e) => setLine(i, { statedFloatsPerModule: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label" htmlFor={`ft${i}`}>Kliendi märgitud ujukeid kokku</label>
+                  <input id={`ft${i}`} inputMode="numeric" className="field" value={l.statedFloatsTotal} onChange={(e) => setLine(i, { statedFloatsTotal: e.target.value })} />
                 </div>
               </div>
               {hint && (
