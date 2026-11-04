@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { detectKind, ingestFile, ingestPaste } from "@/lib/ingest";
 import { LIMITS } from "@/lib/ingest/limits";
-import { readFix } from "./helpers/scripted";
+import { readFix } from "./helpers/fixtures";
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, "");
 const allText = (d: { units: { text: string }[] }) => squash(d.units.map((u) => u.text).join("\n"));

@@ -1,7 +1,6 @@
-import { createAnthropicExtractor, getLlmConfig, NOT_CONFIGURED_MESSAGE } from "@/lib/extract/provider";
 import { LIMITS } from "@/lib/ingest/limits";
 import { startAnalysis } from "@/lib/pipeline/run";
-import { clientIp, configStatus, dailyLimitReached, isAuthorized, rateLimited } from "@/lib/security";
+import { clientIp, dailyLimitReached, isAuthorized, rateLimited } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,12 +10,6 @@ const err = (message: string, status: number, extra: Record<string, unknown> = {
 
 /** Võtab vastu kleebitud teksti ja/või failid, alustab analüüsi taustal ja tagastab kirje ID. */
 export async function POST(req: Request) {
-  const cfg = getLlmConfig();
-  if (!cfg) return err(NOT_CONFIGURED_MESSAGE, 503, { code: "NOT_CONFIGURED" });
-  const status = configStatus();
-  if (status.accessRequired && !status.accessConfigured) {
-    return err("Analüüs on keelatud, kuni serveris pole seadistatud ligipääsukood (ANALYSIS_ACCESS_CODE).", 503, { code: "ACCESS_NOT_CONFIGURED" });
-  }
   if (!isAuthorized(req)) return err("Sisesta ligipääsukood.", 401, { code: "ACCESS_REQUIRED" });
   if (rateLimited(`analyze:${clientIp(req)}`, 10, 60 * 60 * 1000)) return err("Liiga palju analüüse selle tunni jooksul. Proovi hiljem uuesti.", 429);
   try {
@@ -45,7 +38,7 @@ export async function POST(req: Request) {
   if (total > LIMITS.maxTotalBytes) return err(`Failid on kokku liiga suured (piir ${LIMITS.maxTotalBytes / 1024 / 1024} MB).`, 413);
 
   try {
-    const id = await startAnalysis({ pasteText, files }, createAnthropicExtractor(cfg));
+    const id = await startAnalysis({ pasteText, files });
     return Response.json({ id }, { status: 202 });
   } catch (e) {
     console.error("start analysis failed", (e as Error)?.name);

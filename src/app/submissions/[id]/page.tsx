@@ -32,7 +32,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
           {input.type === "ORDER" ? "Tellimus" : "Päring"} · {input.customerName || "klient puudub"}
           {input.requestedDeliveryDate && ` · tarne ${input.requestedDeliveryDate}`}
           {row.isDemo && " · näidisjuhtum"}
-          {auto && ` · automaatne lugemine (${row.extractionProvider}, ${row.extractionModel})`}
+          {auto && ` · automaatne lugemine (kohalik, reeglipõhine; vaata väärtused üle)`}
         </p>
       </div>
 

@@ -71,25 +71,19 @@ export function AnalyzeBox() {
   const total = files.reduce((n, f) => n + f.size, 0);
   const tooMany = cfg && files.length > cfg.limits.maxFiles;
   const tooBig = cfg && total > cfg.limits.maxTotalMb * 1024 * 1024;
-  const canSubmit = !busy && (text.trim() || files.length > 0) && !tooMany && !tooBig && cfg?.configured && (cfg.authorized || !cfg.accessRequired);
+  const canSubmit = !busy && (text.trim() || files.length > 0) && !tooMany && !tooBig && (cfg?.authorized || !cfg?.accessRequired);
 
   return (
     <section className="card space-y-4 border-2 border-navy" aria-labelledby="analyze-h">
       <h2 id="analyze-h" className="text-xl font-bold text-navy">Lisa tellimus või päring</h2>
-      <p>Kleebi kliendi e-kiri või lae üles tellimus. Rakendus loeb andmed ise välja ja kontrollib need SP toodete andmete ja reeglite vastu. Küsib alles pärast seda, kui midagi on tõesti puudu või ebaselge.</p>
+      <p>Kleebi kliendi e-kiri või lae üles tellimus. Rakendus loeb andmed ise välja (kohalike reeglitega, ilma välise tehisintellektita) ja kontrollib need SP toodete andmete ja reeglite vastu. Küsib alles pärast seda, kui midagi on tõesti puudu või ebaselge.</p>
 
-      {cfg && !cfg.configured && (
-        <div role="alert" className="rounded border-2 border-amber-700 bg-amber-50 p-3 text-amber-900">
-          <strong>Automaatne analüüs pole seadistatud.</strong> Serveris puudub analüüsiteenuse seadistus (vt README: <code>ANTHROPIC_API_KEY</code>). Kuni selleni saab
-          andmeid sisestada <Link className="underline" href="/submissions/new">käsitsi</Link>, kuid see ei asenda automaatset lugemist.
-        </div>
-      )}
-      {cfg?.configured && cfg.accessRequired && !cfg.accessConfigured && (
+      {cfg?.accessRequired && !cfg.accessConfigured && (
         <div role="alert" className="rounded border-2 border-amber-700 bg-amber-50 p-3 text-amber-900">
           Analüüs on kaitstud: serveris pole veel seadistatud ligipääsukood (<code>ANALYSIS_ACCESS_CODE</code>).
         </div>
       )}
-      {cfg?.configured && cfg.accessRequired && cfg.accessConfigured && !cfg.authorized && (
+      {cfg?.accessRequired && cfg.accessConfigured && !cfg.authorized && (
         <div className="space-y-2 rounded border border-slate-400 p-3">
           <label className="label" htmlFor="code">Ligipääsukood</label>
           <div className="flex flex-wrap gap-2">
@@ -130,7 +124,7 @@ export function AnalyzeBox() {
       {error && <p role="alert" className="rounded border-2 border-red-700 bg-red-50 p-2 text-red-900">{error}</p>}
 
       <p className="hint">
-        Tekst ja failid saadetakse analüüsiks välisele tehisintellekti teenusele (Anthropic). Originaalfaile ei salvestata; salvestatakse loetud tekst, leitud andmed ja
+        Kõik töötlus (sh skaneeritud PDF-i OCR) toimub selles serveris, andmeid ei saadeta välistele tehisintellekti- ega OCR-teenustele. Loetud andmed on pakutud väärtused: vaata need üle ja paranda vajadusel. Originaalfaile ei salvestata; salvestatakse loetud tekst, leitud andmed ja
         tulemused. Kasuta demos ainult fiktiivseid või anonüümseid tellimusi.
       </p>
       <button type="button" className="btn btn-primary w-full sm:w-auto" disabled={!canSubmit} onClick={submit}>

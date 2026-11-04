@@ -13,8 +13,8 @@ tellimus kontrollitakse -> tulemused -> küsitakse ainult tegelikult puuduva võ
 - Operaator on Top Marine'i töötaja; scope on SP ja asjakohased tarvikud; liides eesti keeles.
 
 ## Vanad piirangud on TÜHISTATUD (ära rakenda uuesti)
-Varasem spetsifikatsioon keelas ekslikult OCR-i, tehisintellektil põhineva väljavõtte, välised AI-kutsed ja tellimusteksti tõlgendamise. Need keelud on
-kehtetud. Semantiline väljavõte LLM-iga ja OCR on nõutud. Ära lisa neid keelde tagasi.
+OCR ja tellimusteksti automaatne tõlgendamine on lubatud ja nõutud. **Kehtiv otsus (õppetöö):** ilma tasulise välise AI/OCR-teenuseta. Väljavõte on kohalik reeglipõhine
+(`src/lib/extract/local.ts`), OCR on kohalik (tesseract.js); `ANTHROPIC_API_KEY`-d ega muud API võtit ei vajata. Ära lisa tasulist API-sõltuvust tagasi ilma kasutaja palveta.
 Endiselt välistatud: tehnilise joonise tõlgendamine, CAD-analüüs ja mõõtude väljavõte joonistelt; hinnapakkumised/hinnad; automaatne insenerikinnitus.
 
 ## Reeglid
@@ -37,8 +37,8 @@ Endiselt välistatud: tehnilise joonise tõlgendamine, CAD-analüüs ja mõõtud
 - Reegli muudatus -> uuenda `src/lib/catalogue/data.ts` (RULES, RULES_VERSION), testid ja seed; salvestatud ValidationRun kirjeid ei kirjutata ümber.
 - Hindu ega originaaldokumente (`source-documents/`, tööjoonised, hinnakirja töövihik) ei commit'i ega avalikusta. Paigaldusjuhend on CONFIDENTIAL: kasuta ainult komponendikoode/nimetusi.
 - Kliendi originaalfaile ei salvestata (Renderi ketas on ajutine): töödeldakse mälus, püsivalt hoitakse loetud tekst, tõendid ja tulemused PostgreSQL-is. Ajutised failid kustutatakse.
-- Saladused (`ANTHROPIC_API_KEY`, `ANALYSIS_ACCESS_CODE`, `DATABASE_URL`) ainult serveri keskkonnamuutujatest; ei koodis, brauseris, logis ega vestluses. Parooleid ei küsita vestluses.
-- Analüüsi lõpp-punktid on serveripoolselt kaitstud (ligipääsukood + piirangud); ära eemalda kaitset.
+- Saladused (`ANALYSIS_ACCESS_CODE` kui seatud, `DATABASE_URL`) ainult serveri keskkonnamuutujatest; ei koodis, brauseris, logis ega vestluses. Parooleid ei küsita vestluses.
+- Analüüsi lõpp-punktid: piirangud (tund/päev) alati; ligipääsukood on valikuline (kui `ANALYSIS_ACCESS_CODE` on seatud, nõutakse seda). Ära eemalda piiranguid.
 - Liides eesti keeles; seis ei tohi toetuda ainult värvile.
 
 ## Paigaldus (Render, mitte Railway - õppetöö kõrvalekalle, õppejõu kinnitust ei ole)

@@ -1,7 +1,7 @@
-// Analüüsi lõpp-punktide kaitse: serveripoolne ligipääsukood + piirangud. Peidetud nupp ei ole kaitse.
+// Analüüsi lõpp-punktide kaitse: piirangud (tund/päev) ja VALIKULINE serveripoolne ligipääsukood. Välist API võtit ei vajata.
+// Kui ANALYSIS_ACCESS_CODE on seatud, nõutakse seda; kui mitte, on analüüs avatud (õppetöö demo), piirangud kehtivad endiselt.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "./db";
-import { getLlmConfig } from "./extract/provider";
 
 export const ACCESS_COOKIE = "tm_access";
 
@@ -9,7 +9,7 @@ const accessCode = () => process.env.ANALYSIS_ACCESS_CODE?.trim() || null;
 const token = (code: string) => createHmac("sha256", code).update("tm-access-v1").digest("hex");
 
 export function accessRequired(): boolean {
-  return process.env.NODE_ENV === "production" || !!accessCode();
+  return !!accessCode();
 }
 
 export function checkCode(given: string): boolean {
@@ -70,5 +70,5 @@ export interface AnalysisConfigStatus {
   accessConfigured: boolean;
 }
 export function configStatus(): AnalysisConfigStatus {
-  return { configured: !!getLlmConfig(), accessRequired: accessRequired(), accessConfigured: !!accessCode() };
+  return { configured: true, accessRequired: accessRequired(), accessConfigured: !!accessCode() };
 }

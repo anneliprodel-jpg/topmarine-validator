@@ -36,23 +36,25 @@ Makrosid ei käivitata (ainult tekst loetakse). Parooliga kaitstud, vigased, üm
 Tehniliste joonistete tõlgendamine, CAD ja joonise mõõtude väljavõte on tahtlikult väljas.
 
 **Piirid** (`src/lib/ingest/limits.ts`): kuni 5 faili, 10 MB faili kohta, 20 MB kokku; kleebitud tekst 30 000 märki; PDF kuni 20 lehte, neist OCR kuni 6 lehte;
-Excel kuni 12 lehte, 400 rida lehe kohta; mudelile saadetakse kuni 60 000 märki; faili lugemise ajalimiit 150 s; korraga töötleb üks analüüs. Need on valitud
+Excel kuni 12 lehte, 400 rida lehe kohta; faili lugemise ajalimiit 150 s; korraga töötleb üks analüüs. Need on valitud
 Renderi Free (512 MB RAM) jaoks, kuid **Renderis ei ole neid proovitud** (vt "Mis on testitud").
 
-## Semantiline väljavõte (LLM) ja kaitse
+## Kohalik väljavõte (ilma tasulise tehisintellektita) ja kaitse
 
-- Pakkuja: **Anthropic Claude API** (`@anthropic-ai/sdk`), struktureeritud väljund (JSON-skeem + zod), mudel seadistatav (`LLM_MODEL`, vaikimisi `claude-opus-5-5`).
-- Mudel saab loetud tekstilõigud ID-dega ja peab iga väite juurde andma lõigu ID ja sõnasõnalise katkendi. Server kontrollib: katkend peab olema tegelikult loetud
-  tekstis, algne sõnastus katkendis, number ühtima sõnastusega (nt "2400 mm" -> 2,4), kuupäev ühtima, variant/ankurduse tüüp toetatud sõnastusega. Kontrollimata väited
-  **visatakse ära**.
-- Kliendi tekst on mudelile andmestik, mitte juhis. Mudelit ei kasutata kataloogi sobitamiseks ega kontrolliks: need on deterministlikud (`src/lib/validation/`).
-- Mitme dokumendi liitmine on deterministlik (`src/lib/extract/build.ts`): sama toode e-kirjas ja manuses on **üks** rida (kogust ei kahekordistata); erinev kogus/mõõt
-  tekitab "Vastuolu" mõlema allikaga ja jääb lahendamata, kuni kasutaja valib.
-- Seadistamata korral näitab rakendus **"Automaatne analüüs pole seadistatud"** (ei näita võltstulemusi).
-- **Kulu ja privaatsus:** tekst ja failid saadetakse analüüsiks Anthropicule; API kasutus on tasuline (Claude.ai tellimus API võtit ei anna).
-  Originaalfaile ei salvestata (Renderi ketas on ajutine): salvestatakse loetud tekst, leitud andmed, tõendid ja tulemused PostgreSQL-i; originaale hiljem alla laadida ei saa.
-- **Ligipääsukaitse:** tootmises on analüüs **keelatud**, kuni serveris on `ANALYSIS_ACCESS_CODE`; kasutaja sisestab koodi (HttpOnly küpsis). Lisaks: 10 analüüsi/tunnis IP kohta
-  (mälupõhine, nullub taaskäivitusel) ja päevapiir `ANALYSIS_DAILY_LIMIT` (vaikimisi 30, loendatakse andmebaasist).
+- **Väliseid API-sid ei kasutata.** Väljavõte (`src/lib/extract/local.ts`) on reeglipõhine: regulaaravaldised tuvastavad tootekoodi, koguse, mõõdud (mm/cm/m -> m, koma), ujukite arvu,
+  tarnekuupäeva, kliendi, projekti, ankurduse, kaldaühenduse, moodulite ühenduse, talvekasutuse, laine/hoovuse/paadi väärtused ja märkused. OCR (tesseract.js, eesti + inglise keel) töötab samuti serveris.
+  Võtmeid (Anthropic, Gemini jms) ei vajata; ainus kohustuslik muutuja on `DATABASE_URL`.
+- Iga väide kaasab lõigu ID ja sõnasõnalise katkendi. `src/lib/extract/verify.ts` kontrollib neid loetud teksti vastu (number ühtib sõnastusega, kuupäev, variant toetatud sõnastusega);
+  kontrollimata väited **visatakse ära**. Midagi ei arvata: puuduv väärtus on `null`, ebaselge (nt mitu tootekoodi ühes lõigus, ankrutüüp "kett või betoon") jääb kasutajale.
+- Kliendi tekst on andmestik, mitte juhis: kohalik väljavõtja ei täida käske ega kutsu tööriistu.
+- Kataloogi sobitamine ja kontroll on deterministlikud (`src/lib/validation/`). Mitme dokumendi liitmine (`src/lib/extract/build.ts`): sama toode e-kirjas ja manuses on **üks** rida;
+  erinev kogus/mõõt tekitab "Vastuolu" mõlema allikaga.
+- **Piirangud:** reeglipõhine lugemine tunneb ära tüüpilised sõnastused (eesti ja inglise keel, "Silt: väärtus" read, tabelid pealkirjaga). Vaba kirjeldus, ebatavaline sõnastus ja
+  skaneeritud tabelid, kus OCR kaotab veergude eraldajad, võivad anda puuduvaid välju. Siis jäävad väljad tühjaks ja kasutaja täidab need tulemuslehel või käsitsi. Tulemused on
+  pakutud väärtused, mitte kinnitatud andmed. Tootekood, mis on Excelis numbrina (eesnull kadunud), jääb ära tundmata.
+- Originaalfaile ei salvestata: salvestatakse loetud tekst, leitud andmed, tõendid ja tulemused PostgreSQL-i.
+- **Ligipääsukood on valikuline:** kui `ANALYSIS_ACCESS_CODE` on seatud, nõutakse seda (HttpOnly küpsis); kui mitte, on analüüs avatud. Piirangud kehtivad alati: 10 analüüsi/tunnis IP kohta
+  (mälupõhine) ja päevapiir `ANALYSIS_DAILY_LIMIT` (vaikimisi 30).
 
 ## Render-i seadistus
 
@@ -66,10 +68,7 @@ Midagi ei ole minu poolt Renderis loodud ega kontrollitud - sammud teed ise.
 | Nimi | Kohustuslik | Mida |
 |---|---|---|
 | `DATABASE_URL` | jah | andmebaasi **Internal Database URL** (kopeeri otse) |
-| `ANTHROPIC_API_KEY` | analüüsiks jah | Anthropic Console'i API võti (**kasutus on tasuline**) |
-| `ANALYSIS_ACCESS_CODE` | analüüsiks jah (tootmises) | enda mõeldud pikk juhuslik ligipääsukood |
-| `LLM_MODEL` | ei | vaikimisi `claude-opus-5-5`; odavam nt `claude-sonnet-5-5` |
-| `LLM_EFFORT` | ei | `low` / `medium` (vaikimisi) / `high` |
+| `ANALYSIS_ACCESS_CODE` | ei | valikuline ligipääsukood analüüsile |
 | `ANALYSIS_DAILY_LIMIT` | ei | vaikimisi 30 |
 
 4. Käivitamisel rakendatakse migratsioonid (`prisma migrate deploy`) ja seed; korduv käivitus ei dubleeri ega lähtesta andmeid. Migratsioonid on **additiivsed**
@@ -83,7 +82,6 @@ OCR on järjekorras (üks korraga) ja töötaja lõpetatakse iga töö järel.
 
 `npm test` (Vitest), `npm run typecheck`, `npm run build`. Sünt-fixture'id (fiktiivne klient) on kaustas `test/fixtures/`: `scripts/make-fixtures.ts` (PDF, skaneeritud PDF, xlsx, xls, vigased failid)
 ja `scripts/make-word-fixtures.ps1` (päris `.docx` ja `.doc` Microsoft Wordiga). `scripts/verify-catalogue.ts <hinnakiri.xlsx>` võrdleb kataloogi hinnakirja SP lehega.
-Päris mudeli test `test/live.test.ts` jookseb ainult siis, kui `ANTHROPIC_API_KEY` on seatud (`npx vitest run test/live.test.ts`).
 
 ## Mis on testitud ja mis mitte
 
@@ -92,14 +90,13 @@ Päris mudeli test `test/live.test.ts` jookseb ainult siis, kui `ANTHROPIC_API_K
   asukohaviited, mitu lehte/tühi esimene leht/ühendatud päis, vigased/ümber nimetatud/tühjad/liiga suured/toetamata failid, "parooliga" OLE-fail.
 - Viidete kontroll (väljamõeldud tsitaat, vale number/kuupäev/variant), liitmine (e-kiri + manus ei kahekordista; vastuolulised kogused; liitmisvastuolu), mootor (vastuolu kataloogiga,
   puuduv info, tundmatu toode, SET, mm/koma), parandus ja uuesti kontroll, dokumentide oleku mõju, ligipääsu ja seadistuse loogika.
-- Päris Next.js tootmisserver (`next start`) **ilma andmebaasita**: `/api/analyze/config` ja `POST /api/analyze` tagastab seadistamata korral "Automaatne analüüs pole seadistatud" (503).
+- Päris Next.js tootmisserver (`next start`) **ilma andmebaasita**: 
 - Kataloog võrreldud hinnakirja SP lehega (`verify-catalogue.ts`): 9 mudelit, MODULE ja SET read, tehnilised väärtused ühtivad.
-- Torustiku testid kasutavad **skriptitud mock-väljavõtjat** (`test/helpers/scripted.ts`, selgelt märgitud). **Mock ei tõesta, et päris semantiline väljavõte töötab.**
+- Torustiku testid (`test/pipeline.test.ts`) jooksevad **kohaliku väljavõtjaga päris fikstuurfailidel** (ilma mockita): PDF, skaneeritud PDF (OCR), xlsx, xls, docx, doc, kleebitud tekst.
 
 **EI ole tehtud / kontrollimata:**
-- **Päris LLM-väljavõte** (puudub API võti): skeem, prompt ja Anthropic-kutse (`messages.parse` + `zodOutputFormat`) on kirjutatud ametliku SDK dokumentatsiooni järgi, kuid ei ole ühegi päris
-  vastuse vastu proovitud. Mudeli väljund ei pruugi alati läbida viidete kontrolli; sel juhul jäävad väärtused tühjaks (ja küsitakse), mitte ei teki valesid.
-- **Brauseritest** (kleebi/lae -> loe -> eeltäidetud tulemus -> parandus -> uuesti kontroll -> salvesta/ava): ei ole tehtud (vaja andmebaasi, API võtit ja Renderi paigaldust).
+- **Skaneeritud PDF:** OCR loeb koodi, mõõdud ja päise, kuid tabeli veerud kaovad; kogus ja ujukite arv jäävad tühjaks (testitud ühe sünteetilise failiga). Käsitsi kirjutatud või väga halva kvaliteediga skänne ei ole proovitud.
+- **Brauseritest** (kleebi/lae -> loe -> eeltäidetud tulemus -> parandus -> uuesti kontroll -> salvesta/ava): ei ole tehtud (vaja andmebaasi ja paigaldust).
 - Migratsioonide rakendumine Renderi PostgreSQL-is; andmete säilimine uue paigalduse järel; Renderi Free mälu/aja piirid OCR-iga; mobiilivaade; teisest seadmest avamine.
 - Ei ole testitud: väga suured failid (>piir), ega paralleelsed kasutajad.
 - Kasutajaliidese uued komponendid (`AnalyzeBox`, `ProcessingStatus`, `ExtractedFacts`) on ainult tüübi- ja build-kontrollitud.

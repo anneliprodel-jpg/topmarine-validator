@@ -1,7 +1,7 @@
-// Mudeli väljundi skeem (struktureeritud väljund). Kõik väited peavad sisaldama viidet ja täpset katkendit allikatekstist.
+// Väljavõtte kuju (kohaliku väljavõtja väljund). Kõik väited peavad sisaldama viidet ja täpset katkendit allikatekstist.
 import * as z from "zod";
 
-export const EXTRACTION_VERSION = "extract-1";
+export const EXTRACTION_VERSION = "local-1";
 
 const Cite = z.object({
   unit_id: z.string().describe("Tekstilõigu ID nurksulgudest, nt D1-U6"),

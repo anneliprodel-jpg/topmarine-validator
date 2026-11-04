@@ -2,10 +2,8 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { EXTRACTION_VERSION } from "../extract/schema";
-import type { Extractor } from "../extract/provider";
-import { ExtractorError } from "../extract/provider";
+import { LOCAL_META } from "../extract/local";
 import { ingestFile, ingestPaste } from "../ingest";
-import { LIMITS } from "../ingest/limits";
 import type { IngestedDoc } from "../ingest/types";
 import { runCheck, saveSubmission } from "../repo";
 import { AnalysisError, analyzeDocuments } from "./analyze";
@@ -16,7 +14,7 @@ export interface AnalysisInputs {
 }
 
 let tail: Promise<unknown> = Promise.resolve();
-/** Üks analüüs korraga (OCR ja mudel on mälu- ja kulumahukad Free-teenusel). */
+/** Üks analüüs korraga (OCR on mälu- ja kulumahukas Free-teenusel). */
 function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   const p = tail.then(fn, fn);
   tail = p.catch(() => undefined);
@@ -26,7 +24,7 @@ function enqueue<T>(fn: () => Promise<T>): Promise<T> {
 const setStage = (id: string, stage: string) => prisma.submission.update({ where: { id }, data: { extractionStage: stage } });
 
 /** Loob kirje ja käivitab töötluse taustal; tagastab kohe ID (olek on andmebaasis). */
-export async function startAnalysis(inputs: AnalysisInputs, extractor: Extractor): Promise<string> {
+export async function startAnalysis(inputs: AnalysisInputs): Promise<string> {
   const names: { name: string; size: number }[] = [];
   if (inputs.pasteText.trim()) names.push({ name: "Kleebitud tekst", size: Buffer.byteLength(inputs.pasteText) });
   inputs.files.forEach((f) => names.push({ name: f.name, size: f.bytes.byteLength }));
@@ -37,14 +35,14 @@ export async function startAnalysis(inputs: AnalysisInputs, extractor: Extractor
       source: "AUTO",
       extractionStatus: "PROCESSING",
       extractionStage: "queued",
-      extractionProvider: extractor.meta.provider,
-      extractionModel: extractor.meta.model,
-      extractionVersion: extractor.meta.extractionVersion,
+      extractionProvider: LOCAL_META.provider,
+      extractionModel: LOCAL_META.model,
+      extractionVersion: LOCAL_META.extractionVersion,
       extractionStartedAt: new Date(),
       documents: { create: names.map((n, i) => ({ index: i + 1, fileName: n.name, byteSize: n.size, status: "PENDING" })) },
     },
   });
-  void enqueue(() => processSubmission(sub.id, inputs, extractor)).catch(async (e) => {
+  void enqueue(() => processSubmission(sub.id, inputs)).catch(async (e) => {
     console.error("analysis crashed", (e as Error)?.name);
     await markFailed(sub.id, "Töötlus ebaõnnestus ootamatu vea tõttu.");
   });
@@ -57,7 +55,7 @@ async function markFailed(id: string, message: string) {
     .catch(() => undefined);
 }
 
-async function processSubmission(id: string, inputs: AnalysisInputs, extractor: Extractor) {
+async function processSubmission(id: string, inputs: AnalysisInputs) {
   // 1. Lugemine
   await setStage(id, "reading");
   const docs: IngestedDoc[] = [];
@@ -79,26 +77,16 @@ async function processSubmission(id: string, inputs: AnalysisInputs, extractor: 
   if (inputs.pasteText.trim()) await persistDoc(ingestPaste(++index, inputs.pasteText));
   for (const f of inputs.files) await persistDoc(await ingestFile(++index, f.name, f.bytes));
 
-  // 2. Väljavõte
+  // 2. Väljavõte (kohalik, reeglipõhine)
   await setStage(id, "extracting");
   let result;
   try {
-    result = await analyzeDocuments(docs, extractor);
+    result = await analyzeDocuments(docs);
   } catch (e) {
-    if (e instanceof AnalysisError || e instanceof ExtractorError) return markFailed(id, e.message);
+    if (e instanceof AnalysisError) return markFailed(id, e.message);
     console.error("extraction failed", (e as Error)?.name);
     return markFailed(id, "Automaatne analüüs ebaõnnestus ootamatu vea tõttu.");
   }
-  for (const di of result.truncatedDocs) {
-    await prisma.sourceDocument.updateMany({
-      where: { submissionId: id, index: di },
-      data: {
-        status: "PARTIAL",
-        message: `Dokumendi tekst lühendati enne analüüsi (piir ${LIMITS.maxUnitsCharsToModel} märki kokku).`,
-      },
-    });
-  }
-
   // 3. Kontroll
   await setStage(id, "checking");
   const { input, evidence, conflicts, issues, typeAssumed } = result.built;
@@ -112,7 +100,7 @@ async function processSubmission(id: string, inputs: AnalysisInputs, extractor: 
     },
   });
   await runCheck(id);
-  const partial = docs.some((d) => d.status !== "OK") || result.truncatedDocs.length > 0;
+  const partial = docs.some((d) => d.status !== "OK");
   await prisma.submission.update({
     where: { id },
     data: { extractionStatus: partial ? "PARTIAL" : "DONE", extractionStage: "done", extractionFinishedAt: new Date() },
